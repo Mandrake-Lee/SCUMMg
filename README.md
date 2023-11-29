@@ -1,9 +1,21 @@
 
 
-# ScummC - A Scumm Compiler
+# SCUMMg - A GNU SCUMM Compiler
+
+## ->THIS PROJECT IS NOT FUNCTIONAL FOR NOW
+
+## I. What is SCUMMg ?
+SCUMMg is an attempt to recreate a compiler for the SCUMM engine *using the original language* and can be seen as a make-up of the fantastic scummC.
+
+The goal behind this project is to use the original Lucasarts syntax and manuals that were not available at the moment of the development of scummC.
+
+These are the main sources:
+* http://tandell.com/misc/SCUMM-Tutorial-0.1.pdf
+* https://web.archive.org/web/20170225190343/http://wilmunder.com/Arics_World/Games_files/The%20SCUMM%20Manual.pdf
+* https://web.archive.org/web/20160412081654/http://wilmunder.com/Arics_World/Games_files/The%20SCUMM%20Manual%20-%20Glossary.pdf
 
 
-## I. What is ScummC ?
+**WHAT FOLLOWS NOW IS THE DESCRIPTION OF ScummC**
 
 ScummC is a set of tools allowing to create SCUMM games from scratch.
 It is capable to create games for SCUMM version 6 (used by Day Of
