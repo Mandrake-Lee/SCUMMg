@@ -85,7 +85,8 @@ TESTS=                          \
 ## 'virtual memory exhausted' look at Makefile.target.
 
 scc_SRCS=                       \
-	scc_parse.tab.c         \
+	scc_parse_bison.c       \
+	scc_parse_api.c			\
 	scc_util.c              \
 	scc_ns.c                \
 	scc_target.c            \
@@ -98,6 +99,7 @@ scc_SRCS=                       \
 	scc_lexer.c             \
 	scc_fd.c                \
 	scc_param.c             \
+	scc_main.c		        \
 
 sld_SRCS=                       \
 	scc_ld.c                \

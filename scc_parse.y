@@ -1,6 +1,9 @@
 /* ScummC
  * Copyright (C) 2004-2006  Alban Bedel
  *
+ * SCUMMg
+ * Copyright (C) 2023-2024 Jorge Amorós-Argos
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -22,64 +25,26 @@
  * @ingroup scc
  * @brief ScummC compiler
  */
-
+%output "scc_parse_bison.c"
+%defines "scc_parse_bison.h"
 %define api.pure full
 %parse-param {struct scc_parser *v_sccp}
 %lex-param {scc_parser_t *YYLEX_PARAM}
 
-%{
-#include "config.h"
+%code requires {
+#define YYSTYPE scc_bison_val_t
+}
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
-#include <errno.h>
-
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include "scc_fd.h"
-#include "scc_util.h"
-
-#include "scc_parse.h"
-#include "scc_ns.h"
-#include "scc_img.h"
-#include "scc_cost.h"
-#include "scc.h"
-#include "scc_roobj.h"
-#include "scc_code.h"
-#include "scc_param.h"
-
-#include "scc_parse.tab.h"
-
-#include "scc_lex.h"
-
+%code provides{
+#include "scc_parse_api.h"
 #include "scc_help.h"
+}
+
+%code {
+#include "config.h"
 
 #define YYERROR_VERBOSE 1
 
-typedef struct scc_parser {
-  // targeted vm version
-  scc_target_t* target;;
-  scc_lex_t* lex;
-  scc_ns_t* ns;
-  scc_roobj_t* roobj_list;
-  scc_roobj_t* roobj;
-  scc_roobj_obj_t* obj;
-  int local_vars;
-  int local_scr;
-  int cycl;
-  // ressources include paths
-  char** res_path;
-  // deps
-  char do_deps;
-  int num_deps;
-  char** deps;
-} scc_parser_t;
-
-#define YYPARSE_PARAM v_sccp
 #define sccp ((scc_parser_t*)v_sccp)
 #define YYLEX_PARAM sccp->lex
 
@@ -87,123 +52,6 @@ typedef struct scc_parser {
 #define yyparse scc_parser_parse_internal
 #define yylex scc_lex_lex
 #define yyerror(loc,sccp,msg) scc_parser_error(sccp,loc,msg)
-
-int scc_parser_error (scc_parser_t* p,YYLTYPE *llocp, const char *s);
-void scc_parser_add_dep(scc_parser_t* p, char* dep);
-
-static void scc_parser_find_res(scc_parser_t* p, char** file_ptr);
-
-
-#define SCC_LIST_ADD(list,last,c) if(c){                  \
-  if(last) last->next = c;                                \
-  else list = c;                                          \
-  for(last = c ; last && last->next ; last = last->next); \
-}
-
-#define SCC_BOP(d,bop,a,cop,b) {                              \
-  if(a->type == SCC_ST_VAL &&                                 \
-     b->type == SCC_ST_VAL) {                                 \
-    a->val.i = ((int16_t)a->val.i) bop ((int16_t)b->val.i);   \
-    free(b);                                                  \
-    d = a;                                                    \
-  } else {                                                    \
-    d = calloc(1,sizeof(scc_statement_t));                    \
-    d->type = SCC_ST_OP;                                      \
-    d->val.o.type = SCC_OT_BINARY;                            \
-    d->val.o.op = cop;                                        \
-    d->val.o.argc = 2;                                        \
-    d->val.o.argv = a;                                        \
-    a->next = b;                                              \
-  }                                                           \
-}
-
-#define SCC_ABORT(at,msg...)  { \
-  scc_log(LOG_ERR,"%s: ",scc_lex_get_file(sccp->lex));        \
-  scc_log(LOG_ERR,msg); \
-  YYABORT; \
-}
-
-  // output filename
-  static char* scc_output = NULL;
-
-  scc_func_t* scc_get_func(scc_parser_t* p, char* sym) {
-    int i,j;
-
-    if(!sym) return NULL;
-
-    for(i = 0 ; p->target->func_list[i] ; i++) {
-      scc_func_t* list = p->target->func_list[i];
-      for(j = 0 ; list[j].sym ; j++) {
-        if(strcmp(sym,list[j].sym)) continue;
-        return &list[j];
-      }
-    }
-
-    return NULL;
-  }
-
-  char* scc_statement_check_func(scc_call_t* c) {
-    int n,min_argc = c->func->argc;
-    scc_statement_t* a;
-    // should be big enouth
-    static char func_err[2048];
-
-    while(min_argc > 0 && (c->func->argt[min_argc-1] & SCC_FA_DEFAULT))
-      min_argc--;
-
-    if(c->argc > c->func->argc || c->argc < min_argc) {
-      sprintf(func_err,"Function %s needs %d args, %d found.\n",
-	      c->func->sym,c->func->argc,c->argc);
-      return func_err;
-    }
-      
-    for(n = 0, a = c->argv ; a ; n++, a = a->next) {
-      if(c->func->argt[n] == SCC_FA_VAL) {
-	if(a->type == SCC_ST_STR ||
-	   a->type == SCC_ST_LIST) {
-	  sprintf(func_err,"Argument %d of call to %s is of the wrong type.\n",
-		  n+1,c->func->sym);
-	  return func_err;
-	}
-      } else if(c->func->argt[n] == SCC_FA_ARRAY) {
-	if(a->type != SCC_ST_VAR ||
-	   !(a->val.v.r->subtype & SCC_VAR_ARRAY)) {
-	  sprintf(func_err,"Argument %d of call to %s must be an array variable.\n",
-		  n+1,c->func->sym);
-	  return func_err;
-	}
-
-      } else if(c->func->argt[n] == SCC_FA_LIST &&
-		a->type != SCC_ST_LIST) {
-	sprintf(func_err,"Argument %d of %s must be a list.\n",
-		n+1,c->func->sym);
-	return func_err;
-      } else if(c->func->argt[n] == SCC_FA_STR &&
-		a->type != SCC_ST_STR) {
-	sprintf(func_err,"Argument %d of %s must be a string.\n",
-		n+1,c->func->sym);
-	return func_err;
-      }
-	
-    }
-
-    return NULL;
-  }
-
-%}
-
-%union {
-  int integer;
-  char* str;
-  char** strlist;
-  scc_symbol_t* sym;
-  scc_statement_t* st;
-  scc_instruct_t* inst;
-  scc_scr_arg_t* arg;
-  scc_script_t* scr;
-  scc_str_t* strvar;
-  int* intlist;
-  scc_verb_script_t* vscr;
 }
 
 // Operators, the order is defining the priority.
@@ -1962,205 +1810,3 @@ natural: INTEGER
 #undef sccp
 
 
-extern int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex);
-
-typedef struct scc_source_st scc_source_t;
-struct scc_source_st {
-  scc_source_t* next;
-  scc_ns_t* ns;
-  scc_roobj_t* roobj_list;
-  char* file;
-  int num_deps;
-  char** deps;
-};
-
-
-static void set_start_pos(YYLTYPE *llocp,int line,int column) {
-  llocp->first_line = line+1;
-  llocp->first_column = column;
-}
-
-static void set_end_pos(YYLTYPE *llocp,int line,int column) {
-  llocp->last_line = line+1;
-  llocp->last_column = column;
-}
-
-// WARNING: This function realloc the file to fit the new path in
-static void scc_parser_find_res(scc_parser_t* sccp, char** file_ptr) {
-  int i;
-  char* file;
-  
-  if(!file_ptr || !file_ptr[0]) return;
-  file = file_ptr[0];
-  
-  if(sccp->res_path) {
-    int file_len = strlen(file);
-    struct stat st;
-    for(i = 0 ; sccp->res_path[i] ; i++) {
-      int path_len = strlen(sccp->res_path[i]) + 1 + file_len + 1;
-      char path[path_len];
-      sprintf(path,"%s/%s",sccp->res_path[i],file);
-      if(stat(path,&st) || !S_ISREG(st.st_mode)) continue;
-      file_ptr[0] = realloc(file,path_len);
-      strcpy(file_ptr[0],path);
-      return;
-    }
-  }
-}
-    
-      
-void scc_parser_add_dep(scc_parser_t* sccp, char* dep) {
-  int i;
-  if(!sccp->num_deps)
-    sccp->deps = malloc(sizeof(char*));
-  else {
-    for(i = 0 ; i < sccp->num_deps ; i++)
-      if(!strcmp(sccp->deps[i],dep)) return;
-    sccp->deps = realloc(sccp->deps,(sccp->num_deps+1)*sizeof(char*));
-  }
-  sccp->deps[sccp->num_deps] = strdup(dep);
-  sccp->num_deps++;
-}
-
-scc_source_t* scc_parser_parse(scc_parser_t* sccp,char* file,char do_deps) {
-  scc_source_t* src;
-
-  if(do_deps) {
-      sccp->lex->opened = (scc_lexer_opened_f)scc_parser_add_dep;
-      sccp->lex->ignore_missing_include = 1;
-  } else {
-      sccp->lex->opened = NULL;
-      sccp->lex->ignore_missing_include = 0;
-  }
-
-  if(!scc_lex_push_buffer(sccp->lex,file)) return NULL;
-
-  sccp->ns = scc_ns_new(sccp->target);
-  sccp->roobj_list = NULL;
-  sccp->roobj = NULL;
-  sccp->obj = NULL;
-  sccp->local_vars = 0;
-  sccp->local_scr = sccp->target->max_global_scr;
-  sccp->cycl = 1;
-  sccp->do_deps = do_deps;
-
-  if(scc_parser_parse_internal(sccp)) return NULL;
-
-  if(sccp->lex->error) {
-    scc_log(LOG_ERR,"%s: %s\n",scc_lex_get_file(sccp->lex),sccp->lex->error);
-    return NULL;
-  }
-
-  src = calloc(1,sizeof(scc_source_t));
-  src->ns = sccp->ns;
-  src->roobj_list = sccp->roobj_list;
-  src->file = file;
-  if(sccp->do_deps) {
-    src->num_deps = sccp->num_deps;
-    src->deps = sccp->deps;
-    sccp->num_deps = 0;
-    sccp->deps = NULL;
-  }
-  return src;
-}
-
-scc_parser_t* scc_parser_new(char** include, char** res_path,
-                             int vm_version) {
-  scc_target_t* target = scc_get_target(vm_version);
-  scc_parser_t* p;
-
-  if(!target) return NULL;
-
-  p = calloc(1,sizeof(scc_parser_t));
-  p->target = target;
-  p->lex = scc_lex_new(scc_main_lexer,set_start_pos,set_end_pos,include);
-  p->lex->userdata = p;
-  p->res_path = res_path;
-  return p;
-}
-
-
-int scc_parser_error(scc_parser_t* sccp,YYLTYPE *loc, const char *s)  /* Called by yyparse on error */
-{
-  scc_log(LOG_ERR,"%s: %s\n",scc_lex_get_file(sccp->lex),
-          sccp->lex->error ? sccp->lex->error : s);
-  return 0;
-}
-
-static char** scc_include = NULL;
-static char** scc_res_path = NULL;
-static int scc_do_deps = 0;
-static int scc_vm_version = 6;
-
-static scc_param_t scc_parse_params[] = {
-  { "o", SCC_PARAM_STR, 0, 0, &scc_output },
-  { "I", SCC_PARAM_STR_LIST, 0, 0, &scc_include },
-  { "R", SCC_PARAM_STR_LIST, 0, 0, &scc_res_path },
-  { "d", SCC_PARAM_FLAG, 0, 1, &scc_do_deps },
-  { "v", SCC_PARAM_FLAG, LOG_MSG, LOG_V, &scc_log_level },
-  { "vv", SCC_PARAM_FLAG, LOG_MSG, LOG_DBG, &scc_log_level },
-  { "V", SCC_PARAM_INT, 6, 7, &scc_vm_version },
-  { "help", SCC_PARAM_HELP, 0, 0, &scc_help },
-  { NULL, 0, 0, 0, NULL }
-};
-
-
-int main (int argc, char** argv) {
-  scc_cl_arg_t* files,*f;
-  scc_parser_t* sccp;
-  char* out;
-  scc_source_t *src,*srcs = NULL;
-  scc_roobj_t* scc_roobj;
-  scc_fd_t* out_fd;
-  int i;
-
-  files = scc_param_parse_argv(scc_parse_params,argc-1,&argv[1]);
-
-  if(!files) scc_print_help(&scc_help,1);
-
-  sccp = scc_parser_new(scc_include,scc_res_path,scc_vm_version);
-
-  for(f = files ; f ; f = f->next) {
-    src = scc_parser_parse(sccp,f->val,scc_do_deps);
-    if(!src) return 1;
-    src->next = srcs;
-    srcs = src;
-  }
-
-  out = scc_output ? scc_output : "output.roobj";
-  out_fd = new_scc_fd(out,O_WRONLY|O_CREAT|O_TRUNC,0);
-  if(!out_fd) {
-    scc_log(LOG_ERR,"Failed to open output file %s.\n",out);
-    return -1;
-  }    
-
-  if(scc_do_deps) {
-    for(src = srcs ; src ; src = src->next) {
-      char* pt = strrchr(src->file,'.');
-      char* start = strrchr(src->file,'/');
-      if(pt) pt[0] = '\0';
-      if(start) start++;
-      else start = src->file;
-      scc_fd_printf(out_fd,"%s.roobj:",start);
-      for(i = 0 ; i < src->num_deps ; i++)
-        scc_fd_printf(out_fd," %s",src->deps[i]);
-        scc_fd_printf(out_fd,"\n");
-    }
-    scc_fd_close(out_fd);
-    return 0;
-  }
-
-  for(src = srcs ; src ; src = src->next) {
-    for(scc_roobj = src->roobj_list ; scc_roobj ; 
-        scc_roobj = scc_roobj->next) {
-      if(!scc_roobj_write(scc_roobj,src->ns,out_fd)) {
-        scc_log(LOG_ERR,"Failed to write ROOM????\n");
-        return 1;
-      }
-    }
-  }
-
-  scc_fd_close(out_fd);
-
-  return 0;
-}

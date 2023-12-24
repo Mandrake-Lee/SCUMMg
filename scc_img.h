@@ -26,6 +26,12 @@
  * paletted format atm. Currently only uncompressed bmp is supported.
  *
  */
+#ifndef SCC_IMG_H
+#define SCC_IMG_H
+
+
+#include "scc.h"
+#include <stdint.h>
 
 typedef struct scc_img {
   unsigned int w,h;
@@ -48,3 +54,5 @@ int scc_img_save_bmp(scc_img_t* img,char* path);
 
 /// Open an image. Only BMP is supported atm.
 scc_img_t* scc_img_open(char* path);
+
+#endif

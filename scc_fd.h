@@ -1,6 +1,9 @@
 /* ScummC
  * Copyright (C) 2004-2006  Alban Bedel
  *
+ * SCUMMg
+ * Copyright (C) 2023-2024 Jorge Amorós-Argos
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -22,7 +25,14 @@
  * @ingroup utils
  * @brief Read/write file with XOR encryption
  */
+#ifndef SCC_FD_H
+#define SCC_FD_H
 
+
+#include <stdint.h>
+#include <stddef.h>
+#include <fcntl.h>
+#include <sys/types.h>
 
 typedef struct scc_fd {
   int fd;
@@ -81,3 +91,6 @@ int scc_fd_vprintf(scc_fd_t*f,const char *fmt, va_list ap);
 #endif
 
 int scc_fd_printf(scc_fd_t*f,const char *fmt, ...);
+
+
+#endif

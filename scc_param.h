@@ -22,6 +22,11 @@
  * @ingroup utils
  * @brief Command line parser
  */
+#ifndef SCC_PARAM_H
+#define SCC_PARAM_H
+
+
+#include <stdint.h>
 
 #define SCC_PARAM_FLAG 1
 #define SCC_PARAM_INT  2
@@ -72,3 +77,6 @@ typedef struct scc_help_st {
 } scc_help_t;
 
 void scc_print_help(scc_help_t* help,int exit_code);
+
+
+#endif

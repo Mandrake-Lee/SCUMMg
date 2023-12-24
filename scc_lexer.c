@@ -23,17 +23,8 @@
  * @brief ScummC lexer.
  */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <inttypes.h>
-#include <string.h>
-
-#include "scc_util.h"
-#include "scc_parse.h"
-#include "scc_parse.tab.h"
 #include "scc_lex.h"
-
+#include "scc_parse_bison.h"
 
 // List of all the keywords
 // it must be kept sorted bcs a binary search is used on it

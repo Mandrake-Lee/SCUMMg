@@ -23,6 +23,11 @@
  *  @ingroup lex
  *  @brief Base class to implement lexers.
  */
+#ifndef SCC_LEX_H
+#define SCC_LEX_H
+
+#include "scc_util.h"
+#include <stdint.h>
 
 // Get a default definition for YYSYPE and YYLTYPE.
 #ifndef DOXYGEN_SKIP
@@ -163,3 +168,6 @@ int scc_lex_pop_buffer(scc_lex_t* lex);
 int scc_lex_fill_buffer(scc_lex_t* lex,unsigned min_len);
 
 //@}
+
+
+#endif

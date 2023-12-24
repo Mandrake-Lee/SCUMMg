@@ -23,7 +23,11 @@
  * @ingroup utils
  * @brief Common stuff and portabilty helpers
  */
+#ifndef SCC_UTIL_H
+#define SCC_UTIL_H
 
+#include "config.h"
+#include <stdint.h>
 
 #define SCC_SWAP_16(x) ((((x)>>8)&0xFF)|(((x)<<8)&0xFF00))
 #define SCC_SWAP_32(x) (  SCC_SWAP_16((uint16_t)(((x)>>16)&0xFFFF)) | (SCC_SWAP_16((uint16_t)(x))<<16) )
@@ -227,3 +231,6 @@ int  glob(const char *pattern, int flags, int (*errfunc)(const char *epath, int 
 extern int scc_log_level;
 
 void scc_log(int lvl,char* msg, ...) PRINTF_ATTRIB(2,3);
+
+
+#endif

@@ -22,12 +22,21 @@
  * @ingroup scc
  * @brief ScummC object files
  */
+#ifndef SCC_ROOBJ_H
+#define SCC_ROOBJ_H
+
+
+#include "scc_parse.h"
+#include "scc_img.h"
+#include <stdint.h>
 
 typedef struct scc_roobj_res_st scc_roobj_res_t;
 typedef struct scc_roobj_cycl_st scc_roobj_cycl_t;
 typedef struct scc_roobj_state_st scc_roobj_state_t;
 typedef struct scc_roobj_obj_st scc_roobj_obj_t;
 typedef struct scc_roobj_st scc_roobj_t;
+
+typedef struct scc_ns_st scc_ns_t;
 
 /// Generic data ressources like music.
 struct scc_roobj_res_st {
@@ -181,3 +190,6 @@ int scc_roobj_obj_set_param(scc_roobj_obj_t* obj,char* sym,char* val);
 int scc_roobj_obj_set_int_param(scc_roobj_obj_t* obj,char* sym,int val);
 
 int scc_roobj_obj_set_class(scc_roobj_obj_t* obj, scc_symbol_t* sym);
+
+
+#endif

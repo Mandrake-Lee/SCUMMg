@@ -1,6 +1,9 @@
 /* ScummC
  * Copyright (C) 2004-2006  Alban Bedel
  *
+ * SCUMMg
+ * Copyright (C) 2023-2024 Jorge Amorós-Argos
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -22,6 +25,11 @@
  * @ingroup scc
  * @brief ScummC builtin functions
  */
+#ifndef SCC_FUNC_H
+#define SCC_FUNC_H
+
+
+#include <stddef.h>
 
 // A define for the various print function families
 
@@ -1127,3 +1135,5 @@ static scc_func_t* scc_func_v7[] = {
     NULL
 };
 
+
+#endif

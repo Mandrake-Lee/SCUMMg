@@ -22,6 +22,22 @@
  * @ingroup scc
  * @brief SCUMM code generator
  */
+#ifndef SCC_CODE_H
+#define SCC_CODE_H
+
+
+#include "scc_ns.h"
+#include <stdint.h>
+
+struct scc_loop_st {
+  scc_loop_t* next;
+  
+  int type; 
+  int id;   
+  char* sym;
+};
+
+static scc_loop_t *loop_stack = NULL;
 
 /// @name Loop Stack
 /// A little stack for the loops, this is needed
@@ -77,3 +93,5 @@ void scc_script_free(scc_script_t* scr);
 void scc_script_list_free(scc_script_t* scr);
 
 //@}
+
+#endif

@@ -23,6 +23,17 @@
  * @brief ScummC namespace
  */
 
+/* namespace */
+
+#ifndef SCC_NS_H
+#define SCC_NS_H
+
+#include "scc_target.h"
+#include "scc_roobj.h"
+
+typedef struct scc_ns_st scc_ns_t;
+typedef struct scc_source_st scc_source_t;
+
 typedef struct scc_ns_st {
   /// Targeted VM version
   scc_target_t* target;
@@ -35,6 +46,16 @@ typedef struct scc_ns_st {
   /// The address spaces, one bit per address
   uint8_t as[SCC_RES_LAST][0x10000/8];
 } scc_ns_t;
+
+struct scc_source_st {
+  scc_source_t* next;
+  scc_ns_t* ns;
+  scc_roobj_t* roobj_list;
+  char* file;
+  int num_deps;
+  char** deps;
+};
+
 
 scc_ns_t* scc_ns_new(scc_target_t* target);
 
@@ -79,3 +100,5 @@ scc_symbol_t* scc_ns_get_sym_at(scc_ns_t* ns,int type,int addr);
 int scc_sym_is_global(int type);
 
 int scc_sym_is_var(int type);
+
+#endif /* SCC_NS_H */

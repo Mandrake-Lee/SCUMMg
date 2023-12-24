@@ -22,6 +22,11 @@
  * @ingroup scumm
  * @brief SCUMM costume parser and decoder
  */
+#ifndef SCC_COST_H
+#define SCC_COST_H
+
+#include "scc_fd.h"
+#include <stdint.h>
 
 #define SCC_WEST  0
 #define SCC_EAST  1
@@ -60,8 +65,6 @@ struct scc_cost_anim {
   uint16_t mask;
   scc_cost_anim_def_t limb[16];
 };
-
-
 
 typedef struct scc_cost scc_cost_t;
 struct scc_cost {
@@ -133,3 +136,5 @@ int scc_cost_dec_frame(scc_cost_dec_t* dec,uint8_t* dst,
 		       int dst_stride,
 		       uint8_t* mask, int mask_stride,
 		       int x_scale, int y_scale);
+
+#endif

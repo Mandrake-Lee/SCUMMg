@@ -24,18 +24,8 @@
  * @brief ScummC target definitions
  */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
-#include <errno.h>
-
-#include "scc_util.h"
-#include "scc_parse.h"
-
-#include "scc_func.h"
+#include "scc_target.h"
+#include <stdint.h>
 
 static int scc_addr_max_v6[] = {
     0,                       // unused

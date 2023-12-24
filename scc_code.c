@@ -1,6 +1,9 @@
 /* ScummC
  * Copyright (C) 2004-2006  Alban Bedel
  *
+ * SCUMMg
+ * Copyright (C) 2023-2024 Jorge Amorós-Argos
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -23,21 +26,8 @@
  * @brief SCUMM code generator
  */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
-#include <errno.h>
-
-#include "scc_parse.h"
-#include "scc_ns.h"
-#include "scc_util.h"
 #include "scc_code.h"
-
-#define YYSTYPE int
-#include "scc_parse.tab.h"
+#include "scc_parse_bison.h"
 
 scc_operator_t scc_bin_op[] = {
   { '+', SCC_OP_ADD, AADD },
@@ -56,16 +46,6 @@ scc_operator_t scc_bin_op[] = {
   { NEQ, SCC_OP_NEQ ,0 },
   { 0, 0, 0 }
 };
-
-struct scc_loop_st {
-  scc_loop_t* next;
-  
-  int type; 
-  int id;   
-  char* sym;
-};
-
-static scc_loop_t *loop_stack = NULL;
 
 scc_loop_t* scc_loop_get(int type,char* sym) {
   scc_loop_t* l;

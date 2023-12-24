@@ -22,6 +22,12 @@
  * @ingroup scumm
  * @brief Read/write SCUMM data. Mostly obsolete.
  */
+#ifndef SCC_H
+#define SCC_H
+
+#include "scc_util.h"
+#include "scc_cost.h"
+#include <stdint.h>
 
 #define OF_STATE_SHL 4
 #define OF_OWNER_MASK 0x0F
@@ -303,4 +309,4 @@ scc_boxd_t* scc_parse_boxd(scc_fd_t* fd,int len);
 scc_cost_t* scc_parse_cost(scc_fd_t* fd,int len);
 
 
-
+#endif

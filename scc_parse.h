@@ -1,6 +1,9 @@
 /* ScummC
  * Copyright (C) 2004-2006  Alban Bedel
  *
+ * SCUMMg
+ * Copyright (C) 2023-2024 Jorge Amorós-Argos
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -23,6 +26,15 @@
  * @ingroup scc
  * @brief ScummC compiler
  */
+ 
+/*
+ * Hold the declarations exclusively for parsing purposes
+ */
+#ifndef SCC_PARSE_H
+#define SCC_PARSE_H
+
+#include "scc_sym.h"
+#include <stdint.h>
 
 #define SCC_MAX_ARGS         31
 #define SCC_MAX_CLASS        32
@@ -64,7 +76,6 @@ typedef struct scc_code_st scc_code_t;
 typedef struct scc_func_st scc_func_t;
 typedef struct scc_arg_st scc_arg_t;
 typedef struct scc_statement_st scc_statement_t;
-typedef struct scc_symbol_st scc_symbol_t;
 typedef struct scc_scr_arg_st scc_scr_arg_t;
 typedef struct scc_script_st scc_script_t;
 typedef struct scc_decl_st scc_decl_t;
@@ -73,10 +84,10 @@ typedef struct scc_loop_st scc_loop_t;
 typedef struct scc_call_st scc_call_t;
 typedef struct scc_op_st scc_op_t;
 typedef struct scc_operator_st scc_operator_t;
-typedef struct scc_sym_fix_st scc_sym_fix_t;
 typedef struct scc_str_st scc_str_t;
 typedef struct scc_verb_script_st scc_verb_script_t;
-
+typedef struct scc_parser scc_parser_t;
+typedef union scc_bison_val_s scc_bison_val_t;
 /// @name Function argument type
 //@{
 
@@ -313,40 +324,6 @@ struct scc_instruct_st {
 #define SCC_RES_LAST    19
 //@}
 
-/// Symbol
-struct scc_symbol_st {
-  scc_symbol_t* next;
-
-  /// Symbol type
-  int type;
-  /// Subtype, used for variable type and the like
-  int subtype;
-  /// Symbol name
-  char* sym;
-  
-  /// Address, 0 for automatic allocation
-  int addr;
-  /// RID, used for auto-allocated address
-  int rid;
-
-  /// Child symbols for room
-  scc_symbol_t* childs;
-  /// Parent symbol
-  scc_symbol_t* parent;
-
-  /// Used by the linker
-  char status;
-};
-
-/// Symbol fix
-struct scc_sym_fix_st {
-  scc_sym_fix_t* next;
-
-  /// Offset of the code to fix
-  uint32_t off;
-  /// Symbol to use for the fix.
-  scc_symbol_t* sym;
-};
 
 /// @name Script type
 //@{
@@ -466,19 +443,20 @@ struct scc_operator_st {
 
 #define SCC_VAR_RETURN 0xFE
 
-typedef struct scc_target_st {
-    /// Target version
-    int          version;
-    /// List of function list
-    scc_func_t** func_list;
-    /// Highst possible address for each ressource type
-    int*         addr_max;
-    /// Lowest address that can be used
-    int*         addr_min;
-    /// Maximal number of global scripts
-    int          max_global_scr;
-} scc_target_t;
+//Only for bison YYSTYPE
+typedef union scc_bison_val_s {
+  int integer;
+  char* str;
+  char** strlist;
+  scc_symbol_t* sym;
+  scc_statement_t* st;
+  scc_instruct_t* inst;
+  scc_scr_arg_t* arg;
+  scc_script_t* scr;
+  scc_str_t* strvar;
+  int* intlist;
+  scc_verb_script_t* vscr;
+} scc_bison_val_t;
 
-scc_target_t* scc_get_target(int version);
 
-struct scc_parser;
+#endif /* SCC_PARSE_H */

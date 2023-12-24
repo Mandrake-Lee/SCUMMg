@@ -31,6 +31,9 @@
 
   <xsl:template match="/">
     <xsl:text>/* This file was generated, do not edit. */&nl;</xsl:text>
+    <xsl:text>#include "scc_param.h"&nl;</xsl:text>
+	<xsl:text>#include &lt;stddef.h&gt; &nl;</xsl:text>
+
     <xsl:apply-templates select="man/command"/>
   </xsl:template>
 
