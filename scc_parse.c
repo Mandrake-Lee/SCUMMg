@@ -22,18 +22,6 @@
  
 #include "scc_parse.h"
 
-/*
-// Already included in scc_lex.h
-void set_start_pos(YYLTYPE *llocp,int line,int column) {
-  llocp->first_line = line+1;
-  llocp->first_column = column;
-}
-
-void set_end_pos(YYLTYPE *llocp,int line,int column) {
-  llocp->last_line = line+1;
-  llocp->last_column = column;
-}
-*/
 // WARNING: This function realloc the file to fit the new path in
 void scc_parser_find_res(scc_parser_t* sccp, char** file_ptr) {
   int i;

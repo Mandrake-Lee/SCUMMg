@@ -33,18 +33,12 @@
 
 %code requires {
 #define YYSTYPE scc_bison_val_t
-//#define SCC_BUILD
 
 /* Forward declaration that will be completed with its related parse file .h */
 typedef union scc_bison_val_s scc_bison_val_t;
 }
 
 %code provides{
-/*
-#include "scc_parse_api.h"
-#include "scc_help.h"
-*/
-#pragma message "I'm loaded!"
 
 }
 
@@ -54,7 +48,6 @@ typedef union scc_bison_val_s scc_bison_val_t;
 #include "scc_parse.h"
 #include "scc_code.h"
 #include "scc_ns.h"
-//#include "scc_parse_api.h"
 #include "scc_lexer.h"
 
 #define YYERROR_VERBOSE 1

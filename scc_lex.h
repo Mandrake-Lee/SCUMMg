@@ -28,7 +28,6 @@
 
 #include <stdint.h>
 #include "scc_util.h"
-//#include "lex.h"
 
 // Get a default definition for YYSYPE and YYLTYPE.
 #ifndef DOXYGEN_SKIP

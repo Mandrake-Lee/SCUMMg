@@ -80,10 +80,6 @@ int scc_parser_error(scc_parser_t* sccpr,YYLTYPE *loc, const char *s);  /* Calle
 scc_func_t* scc_get_func(scc_parser_t* p, char* sym);
 char* scc_statement_check_func(scc_call_t* c);
 
-/* found in other modules declaration */
-//int scc_parser_parse_internal(struct scc_parser *v_sccp);
-//int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex);
-
 /* Macros used exclusively in parse scc_parse.y file */
 #define SCC_BOP(d,bop,a,cop,b) {                              \
   if(a->type == SCC_ST_VAL &&                                 \

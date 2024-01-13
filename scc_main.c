@@ -20,7 +20,6 @@
 #include <string.h>
 #include "scc_lex_bison.h"
 #include "scc_parse.h"
-//#include "scc_parse_api.h"
 #include "scc_help.h"
 static char* scc_output = NULL;
 static char** scc_include = NULL;
