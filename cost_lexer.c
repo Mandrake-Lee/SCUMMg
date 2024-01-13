@@ -22,17 +22,6 @@
  * @ingroup lex
  * @brief Costume lexer.
  */
-/*
-#include "config.h"
-
-#include <stdlib.h>
-#include <inttypes.h>
-#include <string.h>
-
-#include "scc_util.h"
-#include "cost_parse.tab.h"
-#include "scc_lex.h"
-*/
 
 #include "cost_lexer.h"
 #include "scc_lex.c"	/* This looks awful but has its rationale */
@@ -331,8 +320,3 @@ int cost_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
     return 0;
 }
 
-/*
-int yylex(void) {
-	return scc_lex_lex(&yylval,&yylloc,cost_lex);
-}
-*/

@@ -510,13 +510,6 @@ int header_write(scc_fd_t* fd,char *prefix) {
   return 1;
 }
 
-//int yyerror (const char *s)  /* Called by yyparse on error */
-//{
-//  scc_log(LOG_ERR,"%s: %s\n",scc_lex_get_file(cost_lex),
-//          cost_lex->error ? cost_lex->error : s);
-//  return 0;
-//}
-
 int cost_parser_error(scc_lex_t *cost_lex, YYLTYPE *llocp, const char *s){
 	scc_log(LOG_ERR,"%s: %s\n",scc_lex_get_file(cost_lex),
 		cost_lex->error ? cost_lex->error : s);

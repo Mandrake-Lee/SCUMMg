@@ -45,44 +45,17 @@ typedef union cost_bison_val cost_bison_val_t;
 }
 
 %code provides{
-/*
-#include "cost_parse.h"
-#include "cost_globals.h"
-#include "cost_help.h"
-*/
+
 }
 
 %{
-/*
-#include "cost_lex_bison.h"
-*/
+
 #include "cost_parse.h"
 #include "cost_globals.h"
-/*
-#include "config.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
-#include <errno.h>
-*/
+
 #ifndef IS_MINGW
 #include <glob.h>
 #endif
-
-/*
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include "scc_fd.h"
-#include "scc_util.h"
-#include "scc_param.h"
-#include "scc_img.h"
-//#include "cost_parse.tab.h"
-//#include "scc_lex.h"
-//#include "cost_help.h"
-//#include "cost_lexer.h"
-*/
 
 #define YYERROR_VERBOSE 1
 #define costp ((cost_parser_t*)v_costp)
@@ -90,15 +63,9 @@ typedef union cost_bison_val cost_bison_val_t;
 
 /* Redefine function names */
 #define yyparse cost_parser_parse_internal
-//#define yylex cost_main_lexer
 #define yylex scc_lex_lex
 #define yyerror(loc,sccp,msg) cost_parser_error(sccp,loc,msg)
 
-/*
-typedef struct scc_lex scc_lex_t;
-
-extern scc_lex_t* cost_lex;
-*/
 %}
 
 %token PALETTE
@@ -616,22 +583,4 @@ location: /* empty */
 
 %%
 
-/*
-	static scc_lex_t* cost_lex;
-	extern int cost_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex);
-
-	static void set_start_pos(YYLTYPE *llocp,int line,int column) {
-	  llocp->first_line = line+1;
-	  llocp->first_column = column;
-	}
-
-	static void set_end_pos(YYLTYPE *llocp,int line,int column) {
-	  llocp->last_line = line+1;
-	  llocp->last_column = column;
-	}
-
-	int yylex(void) {
-	  return scc_lex_lex(&yylval,&yylloc,cost_lex);
-	}
-*/
 

@@ -34,7 +34,6 @@
 int main (int argc, char** argv) {
   scc_cl_arg_t* files;
   cost_parser_t *costp;
-//  scc_lex_t *cost_lex;
   char* out;
 
   files = scc_param_parse_argv(scc_parse_params,argc-1,&argv[1]);
@@ -48,10 +47,7 @@ int main (int argc, char** argv) {
 	return -1;
   }
 	costp = cost_parser_new();
-	
-//  cost_lex = scc_lex_new(cost_main_lexer,set_start_pos,set_end_pos,NULL);
-  
-//  if(!scc_lex_push_buffer(cost_lex,files->val)) return -1;
+
 	if(!scc_lex_push_buffer(costp->lex,files->val)) return -1;
   if(cost_parser_parse_internal(costp)) return -1;
 
