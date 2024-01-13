@@ -550,3 +550,13 @@ scc_keyword_t* scc_is_keyword(char* s,scc_keyword_t* kw,unsigned num_kw) {
         else max = m;
     }
 }
+
+void set_start_pos(YYLTYPE *llocp,int line,int column) {
+	llocp->first_line = line+1;
+	llocp->first_column = column;
+}
+
+void set_end_pos(YYLTYPE *llocp,int line,int column) {
+	llocp->last_line = line+1;
+	llocp->last_column = column;
+}

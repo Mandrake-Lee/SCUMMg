@@ -20,16 +20,14 @@
  *
  */
  
- #ifdef SCC_LEXER_H
+ #ifndef SCC_LEXER_H
  #define SCC_LEXER_H
  
  #include "scc_lex_bison.h"
  #include "scc_lex.h"
  #include "scc_parse.h"
- 
+  
  int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex);
- 
- #pragma message ("This is the end")
- 
+  
  #endif
  

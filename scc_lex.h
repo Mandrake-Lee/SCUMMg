@@ -26,8 +26,9 @@
 #ifndef SCC_LEX_H
 #define SCC_LEX_H
 
-#include "scc_util.h"
 #include <stdint.h>
+#include "scc_util.h"
+//#include "lex.h"
 
 // Get a default definition for YYSYPE and YYLTYPE.
 #ifndef DOXYGEN_SKIP
@@ -105,6 +106,9 @@ char* scc_lex_get_file(scc_lex_t* lex);
 
 /// Get the current position.
 int scc_lex_get_line_column(scc_lex_t* lex,int* line,int* column);
+
+void set_start_pos(YYLTYPE *llocp,int line,int column);
+void set_end_pos(YYLTYPE *llocp,int line,int column);
 
 //@}
 

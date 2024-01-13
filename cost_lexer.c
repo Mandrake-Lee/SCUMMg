@@ -22,7 +22,7 @@
  * @ingroup lex
  * @brief Costume lexer.
  */
-
+/*
 #include "config.h"
 
 #include <stdlib.h>
@@ -32,6 +32,10 @@
 #include "scc_util.h"
 #include "cost_parse.tab.h"
 #include "scc_lex.h"
+*/
+
+#include "cost_lexer.h"
+#include "scc_lex.c"	/* This looks awful but has its rationale */
 
 // List of all the keywords
 // it must be kept sorted bcs a binary search is used on it
@@ -59,13 +63,14 @@ static scc_keyword_t cost_keywords[] = {
     { NULL, -1, -1 }
 };
 
+/*
 #define CHECK_EOF(lx,ch)                               \
         if(ch == 0) {                                  \
             if(!lx->error)                             \
                 scc_lex_error(lx,"Unexpected eof.");   \
             return 0;                                  \
         }
-
+*/
 
 static void cost_unescape_string(char* str) {
     int esc = 0,i;
@@ -130,7 +135,6 @@ static int cost_preproc_lexer(scc_lex_t* lex,char* ppd,char* arg) {
     scc_lex_error(lex,"Unknow preprocessor directive %s",ppd);
     return 0;
 }
-
 
 int cost_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
     char c,d;
@@ -326,3 +330,9 @@ int cost_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
     scc_lex_error(lex,"Unrecognized character: '%c'",c);
     return 0;
 }
+
+/*
+int yylex(void) {
+	return scc_lex_lex(&yylval,&yylloc,cost_lex);
+}
+*/

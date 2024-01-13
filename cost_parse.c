@@ -20,11 +20,13 @@
  *
  */
  
+ #include <stdlib.h>
  #include "cost_parse.h"
- 
- 
+ #include "cost_globals.h"
+ #include "scc_img.h"
+  
 // load an image and encode it with the strange vertical RLE
-static int cost_pic_load(cost_pic_t* pic,char* file) {  
+int cost_pic_load(cost_pic_t* pic,char* file) {  
   scc_img_t* img = scc_img_open(file);
   int color,rep,shr,max_rep,x,y;
 
@@ -102,7 +104,7 @@ static int cost_pic_load(cost_pic_t* pic,char* file) {
 }
 
 // compute the whole size of the costume
-static int cost_get_size(int *na,unsigned* coff,unsigned* aoff,unsigned* loff) {
+int cost_get_size(int *na,unsigned* coff,unsigned* aoff,unsigned* loff) {
   cost_pic_t* p;
   int i,j,num_anim,clen = 0;
   int size = 4 + // size
@@ -226,7 +228,7 @@ static int cost_create_limbs(void) {
   return -1;
 }
 
-static int cost_write(scc_fd_t* fd) {
+int cost_write(scc_fd_t* fd) {
   int size,num_anim,i,j,pad = 0;
   cost_pic_t* p;
   uint8_t fmt = 0x58 | cost_flags;
@@ -324,7 +326,7 @@ static int cost_write(scc_fd_t* fd) {
 }
 
 
-static int akos_write(scc_fd_t* fd) {
+int akos_write(scc_fd_t* fd) {
   int akhd_size = 8 + 2 + 1 + 1 + 2 + 2 + 2;
   int akpl_size = 8 + pal_size;
   int aksq_size = 8;
@@ -498,7 +500,7 @@ static int akos_write(scc_fd_t* fd) {
   return 1;
 }
 
-static int header_write(scc_fd_t* fd,char *prefix) {
+int header_write(scc_fd_t* fd,char *prefix) {
   int i;
   scc_fd_printf(fd,"/* This file was generated do not edit */\n\n");
   for(i = 0 ; i < COST_MAX_ANIMS ; i++) {
@@ -508,33 +510,31 @@ static int header_write(scc_fd_t* fd,char *prefix) {
   return 1;
 }
 
-static scc_lex_t* cost_lex;
-extern int cost_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex);
+//int yyerror (const char *s)  /* Called by yyparse on error */
+//{
+//  scc_log(LOG_ERR,"%s: %s\n",scc_lex_get_file(cost_lex),
+//          cost_lex->error ? cost_lex->error : s);
+//  return 0;
+//}
 
-static void set_start_pos(YYLTYPE *llocp,int line,int column) {
-  llocp->first_line = line+1;
-  llocp->first_column = column;
+int cost_parser_error(scc_lex_t *cost_lex, YYLTYPE *llocp, const char *s){
+	scc_log(LOG_ERR,"%s: %s\n",scc_lex_get_file(cost_lex),
+		cost_lex->error ? cost_lex->error : s);
+	return 0;
 }
 
-static void set_end_pos(YYLTYPE *llocp,int line,int column) {
-  llocp->last_line = line+1;
-  llocp->last_column = column;
-}
-
-int yylex(void) {
-  return scc_lex_lex(&yylval,&yylloc,cost_lex);
-}
-
-int yyerror (const char *s)  /* Called by yyparse on error */
-{
-  scc_log(LOG_ERR,"%s: %s\n",scc_lex_get_file(cost_lex),
-          cost_lex->error ? cost_lex->error : s);
-  return 0;
-}
-
-static cost_pic_t* find_pic(char* name) {
+cost_pic_t* find_pic(char* name) {
 	cost_pic_t* p;
 	for(p = pic_list ; p ; p = p->next)
 		if(!strcmp(name,p->name)) break;
+	return p;
+}
+
+cost_parser_t* cost_parser_new(void){
+	cost_parser_t *p;
+
+	p = calloc(1, sizeof(cost_parser_t));
+	p->lex = scc_lex_new(cost_main_lexer,set_start_pos,set_end_pos,NULL);
+	p->lex->userdata = p;
 	return p;
 }

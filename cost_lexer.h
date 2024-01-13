@@ -30,7 +30,6 @@
 #include <string.h>
 
 #include "scc_util.h"
-//#include "cost_parse.tab.h"
 #include "cost_lex_bison.h"
 #include "cost_parse.h"
 #include "scc_lex.h"

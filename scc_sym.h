@@ -23,14 +23,17 @@
  /*
   * Declarations for the symbolic tree of the parse
   */
- #ifndef SCC_SYM_H
- #define SCC_SYM_H
+#ifndef SCC_SYM_H
+#define SCC_SYM_H
  
- #include <stdint.h>
- 
- typedef struct scc_symbol_st scc_symbol_t;
- typedef struct scc_sym_fix_st scc_sym_fix_t;
+#include <stdint.h>
 
+/* Forward declaration of struct's & typedef's */
+typedef struct scc_symbol_st scc_symbol_t;
+typedef struct scc_sym_fix_st scc_sym_fix_t;
+typedef struct scc_script_st scc_script_t;
+
+/* Complete declaration of struct's & typedef's */
 /// Symbol
 struct scc_symbol_st {
   scc_symbol_t* next;
@@ -65,6 +68,20 @@ struct scc_sym_fix_st {
   /// Symbol to use for the fix.
   scc_symbol_t* sym;
 };
- 
+
+/// Script
+struct scc_script_st {
+  scc_script_t* next;
+
+  /// The symbol of this script
+  scc_symbol_t* sym;
+  
+  /// The script code
+  uint8_t* code;
+  /// The code size
+  uint32_t code_len;
+  /// List of the symbol to fix
+  scc_sym_fix_t* sym_fix;
+};
  
  #endif /* SCC_SYM_H */

@@ -26,8 +26,13 @@
 #define SCC_ROOBJ_H
 
 
-#include "scc_parse.h"
+#include "scc_sym.h"
+#include "scc_code.h"
+#include "scc_ns.h"
+#include "scc_cost.h"
+#include "scc.h"
 #include "scc_img.h"
+
 #include <stdint.h>
 
 typedef struct scc_roobj_res_st scc_roobj_res_t;
@@ -35,8 +40,9 @@ typedef struct scc_roobj_cycl_st scc_roobj_cycl_t;
 typedef struct scc_roobj_state_st scc_roobj_state_t;
 typedef struct scc_roobj_obj_st scc_roobj_obj_t;
 typedef struct scc_roobj_st scc_roobj_t;
+typedef struct scc_source_st scc_source_t;
 
-typedef struct scc_ns_st scc_ns_t;
+//typedef struct scc_ns_st scc_ns_t;
 
 /// Generic data ressources like music.
 struct scc_roobj_res_st {
@@ -142,6 +148,15 @@ struct scc_roobj_st {
   scc_data_t* boxm;
   /// Scaling slots
   scc_data_t* scal;
+};
+
+struct scc_source_st {
+  scc_source_t* next;
+  scc_ns_t* ns;
+  scc_roobj_t* roobj_list;
+  char* file;
+  int num_deps;
+  char** deps;
 };
 
 scc_roobj_t* scc_roobj_new(scc_target_t* t, scc_symbol_t* sym);

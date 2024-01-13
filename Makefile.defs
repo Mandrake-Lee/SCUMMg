@@ -86,7 +86,7 @@ TESTS=                          \
 
 scc_SRCS=                       \
 	scc_parse_bison.c       \
-	scc_parse_api.c			\
+	scc_parse.c				\
 	scc_util.c              \
 	scc_ns.c                \
 	scc_target.c            \
@@ -95,10 +95,10 @@ scc_SRCS=                       \
 	scc_code.c              \
 	code.c                  \
 	write.c                 \
-	scc_lex.c               \
 	scc_lexer.c             \
 	scc_fd.c                \
 	scc_param.c             \
+	scc_func.c				\
 	scc_main.c		        \
 
 sld_SRCS=                       \
@@ -109,6 +109,7 @@ sld_SRCS=                       \
 	scc_fd.c                \
 	scc_param.c             \
 	scc_util.c              \
+	scc_func.c				\
 
 boxedit_SRCS=                   \
 	read.c                  \
@@ -125,13 +126,15 @@ boxedit_LIBS=                   \
 	GTK                     \
 
 cost_SRCS=                      \
-	cost_parse.tab.c        \
+	cost_parse_bison.c        \
 	scc_fd.c                \
 	scc_param.c             \
 	scc_img.c               \
 	scc_util.c              \
-	scc_lex.c               \
 	cost_lexer.c            \
+	cost_globals.c			\
+	cost_parse.c			\
+	cost_main.c				\
 
 char_SRCS=                      \
 	char.c                  \

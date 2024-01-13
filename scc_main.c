@@ -16,10 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "scc_parse_bison.h"
 #include <stdio.h>
 #include <string.h>
-
+#include "scc_lex_bison.h"
+#include "scc_parse.h"
+//#include "scc_parse_api.h"
+#include "scc_help.h"
 static char* scc_output = NULL;
 static char** scc_include = NULL;
 static char** scc_res_path = NULL;

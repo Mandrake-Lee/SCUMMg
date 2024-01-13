@@ -31,6 +31,8 @@
 
   <xsl:template match="/">
     <xsl:text>/* This file was generated, do not edit. */&nl;</xsl:text>
+	<xsl:text>#ifndef HELP_H&nl;</xsl:text>
+	<xsl:text>#define HELP_H&nl;&nl;</xsl:text>
     <xsl:text>#include "scc_param.h"&nl;</xsl:text>
 	<xsl:text>#include &lt;stddef.h&gt; &nl;</xsl:text>
 
@@ -58,7 +60,7 @@
     <xsl:apply-templates select="@name" mode="c-sym"/>
     <xsl:text>_param_help&nl;</xsl:text>
 
-    <xsl:text>};&nl;</xsl:text>
+    <xsl:text>};&nl;#endif&nl;</xsl:text>
   </xsl:template>
 
   <xsl:template match="*"/>

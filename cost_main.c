@@ -19,31 +19,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  */
-#include "cost_parse_bison.h"
+
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include "cost_lex_bison.h"
+#include "cost_parse.h"
+#include "cost_lexer.h"
+#include "scc_param.h"
+#include "cost_globals.h"
+#include "cost_help.h"
 
-static char* cost_output = NULL;
-static char* img_path = NULL;
-// Output a AKOS instead of COST
-static int akos = 0;
-// Ouput a header
-static char* symbol_prefix = NULL;
-static char* header_name = NULL;
-
-static scc_param_t scc_parse_params[] = {
-	{ "o", SCC_PARAM_STR, 0, 0, &cost_output },
-	{ "I", SCC_PARAM_STR, 0, 0, &img_path },
-	{ "akos", SCC_PARAM_FLAG, 0, 1, &akos },
-	{ "prefix", SCC_PARAM_STR, 0, 0, &symbol_prefix },
-	{ "header", SCC_PARAM_STR, 0, 0, &header_name },
-	{ "help", SCC_PARAM_HELP, 0, 0, &cost_help },
-	{ NULL, 0, 0, 0, NULL }
-};
 
 int main (int argc, char** argv) {
   scc_cl_arg_t* files;
+  cost_parser_t *costp;
+//  scc_lex_t *cost_lex;
   char* out;
 
   files = scc_param_parse_argv(scc_parse_params,argc-1,&argv[1]);
@@ -56,11 +47,13 @@ int main (int argc, char** argv) {
 	printf("Failed to open output file %s.\n",out);
 	return -1;
   }
-
-  cost_lex = scc_lex_new(cost_main_lexer,set_start_pos,set_end_pos,NULL);
-  if(!scc_lex_push_buffer(cost_lex,files->val)) return -1;
-
-  if(yyparse()) return -1;
+	costp = cost_parser_new();
+	
+//  cost_lex = scc_lex_new(cost_main_lexer,set_start_pos,set_end_pos,NULL);
+  
+//  if(!scc_lex_push_buffer(cost_lex,files->val)) return -1;
+	if(!scc_lex_push_buffer(costp->lex,files->val)) return -1;
+  if(cost_parser_parse_internal(costp)) return -1;
 
   if(akos)
 	akos_write(out_fd);
@@ -78,6 +71,8 @@ int main (int argc, char** argv) {
 	header_write(out_fd,symbol_prefix);
 	scc_fd_close(out_fd);
   }
+
+	free(costp);
 
   return 0;
 }

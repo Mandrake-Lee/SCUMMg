@@ -24,7 +24,11 @@
 #define COST_PARSE_H
 
 #include <stddef.h>
-#include <cstdint.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include "scc_fd.h"
+#include "cost_lexer.h"
 
 #define COST_ABORT(at,msg...)  { \
   printf("Line %d, column %d: ",at.first_line,at.first_column); \
@@ -32,17 +36,55 @@
   YYABORT; \
 }
 
-typedef union cost_bison_val cost_bison_val_t;
+#define COST_MAX_LIMBS			16
+#define LIMB_MAX_PICTURES		0x70
+#define COST_MAX_DIR			4
+#define COST_MAX_CMD_ARG		1
+#define COST_CMD_DISPLAY		0x00	/* Show a picture */
+#define COST_CMD_SOUND			0x70	/* Play a sound? */
+#define COST_CMD_HIDE			0x79	/* Hide the track */
+#define COST_CMD_SHOW			0x7A	/* Show the track */
+#define COST_CMD_NOP			0x7B	/* Display nothing */
+#define COST_CMD_COUNT			0x7C	/* Increment the anim counter */
+#define COST_MAX_ANIMS			0x3F
+#define COST_MAX_LIMB_CMDS		0x7F
+#define COST_MAX_PALETTE_SIZE	32
+#define ANIM_USER_START			6
 
+/* Forward declaration of struct's & typedef's */
+typedef union cost_bison_val cost_bison_val_t;
+typedef struct cost_pic cost_pic_t;
+typedef struct cost_limb cost_limb_t;
+typedef struct cost_cmd cost_cmd_t;
+typedef struct cost_limb_anim cost_limb_anim_t;
+typedef struct cost_anim_dir cost_anim_dir_t;
+typedef struct cost_anim cost_anim_t;
+typedef struct cost_parser cost_parser_t;
+struct dir_map;
+struct anim_map;
+
+/* Prototype declaration of functions */
+int cost_pic_load(cost_pic_t* pic,char* file);
+int cost_get_size(int *na,unsigned* coff,unsigned* aoff,unsigned* loff);
+static int cost_get_pic_limb_id(int limb_n, cost_pic_t* pic);
+static int cost_create_limbs(void);
+int cost_write(scc_fd_t* fd);
+int akos_write(scc_fd_t* fd);
+int header_write(scc_fd_t* fd,char *prefix);
+int cost_parser_error(scc_lex_t *cost_lex, YYLTYPE *llocp, const char *s);
+cost_pic_t* find_pic(char* name);
+cost_parser_t* cost_parser_new(void);
+
+
+/* Complete declaration of struct's & typedef's */
 typedef union cost_bison_val {
 	int integer;    // INTEGER, number
 	char* str;      // STRING, ID
 	int intpair[2];
 	uint8_t* intlist;
 	struct cost_cmd* cmd;
-} cost_bison_val_t
+} cost_bison_val_t;
 
-typedef struct cost_pic cost_pic_t;
 struct cost_pic {
 	cost_pic_t* next;
 	// name from the sym
@@ -65,40 +107,11 @@ struct cost_pic {
 	uint32_t data_size;
 };
 
-
-  static cost_pic_t* cur_pic = NULL;
-  static cost_pic_t* pic_list = NULL;
-
-#define COST_MAX_LIMBS 16
-#define LIMB_MAX_PICTURES 0x70
-#define COST_MAX_DIR 4
-
 typedef struct cost_limb {
 	char* name;
 	unsigned num_pic;
 	cost_pic_t* pic[LIMB_MAX_PICTURES];
 } cost_limb_t;
-  
-
-static cost_limb_t limbs[COST_MAX_LIMBS];
-static cost_limb_t* cur_limb = NULL;
-
-#define COST_MAX_CMD_ARG 1
-
-  // Show a picture
-#define COST_CMD_DISPLAY      0x00
-  // Play a sound?
-#define COST_CMD_SOUND        0x70
-  // Hide the track
-#define COST_CMD_HIDE         0x79
-  // Show the track
-#define COST_CMD_SHOW         0x7A
-  // Display nothing
-#define COST_CMD_NOP          0x7B
-  // Increment the anim counter
-#define COST_CMD_COUNT        0x7C
-
-typedef struct cost_cmd cost_cmd_t;
 
 struct cost_cmd {
 	cost_cmd_t* next;
@@ -109,9 +122,6 @@ struct cost_cmd {
 		cost_pic_t*  pic;
 	} arg[COST_MAX_CMD_ARG];
 };
-
-#define COST_MAX_ANIMS 0x3F
-#define COST_MAX_LIMB_CMDS 0x7F
 
 typedef struct cost_limb_anim {
 	unsigned len;
@@ -130,65 +140,33 @@ typedef struct cost_anim {
 	cost_anim_dir_t dir[COST_MAX_DIR];
 } cost_anim_t;
 
-static cost_anim_t anims[COST_MAX_ANIMS];
-static cost_anim_t* cur_anim = NULL;
-static cost_anim_dir_t* cur_dir = NULL;
-
-#define COST_MAX_PALETTE_SIZE 32
-static unsigned pal_size = 0;
-static uint8_t pal[COST_MAX_PALETTE_SIZE];
-
-// Default to no flip
-static unsigned cost_flags = 0x80;
-/*
-static char* img_path = NULL;
-static char* cost_output = NULL;
-*/
-static scc_fd_t* out_fd = NULL;
-/*
-// Output a AKOS instead of COST
-static int akos = 0;
-
-// Ouput a header
-static char* header_name = NULL;
-static char* symbol_prefix = NULL;
-*/
-
-/* prototype declaration of functions */
-static int cost_pic_load(cost_pic_t* pic,char* file);
-
-/*
-	static cost_pic_t* find_pic(char* name) {
-	cost_pic_t* p;
-	for(p = pic_list ; p ; p = p->next)
-	  if(!strcmp(name,p->name)) break;
-	return p;
-	}
-*/
 struct dir_map {
 	char* name;
 	unsigned id;
-	} dir_map[] = {
-	{ "W",   0 },
-	{ "E",   1 },
-	{ "S",   2 },
-	{ "N",   3 },
-	{ NULL,  0 }
-};
-
+	};
+	
 struct anim_map {
 	char* name;
 	unsigned id;
-	} anim_map[] = {
-	{ "init",       1 },
-	{ "walk",       2 },
-	{ "stand",      3 },
-	{ "talkStart",  4 },
-	{ "talkStop",   5 },
-	{ NULL, 0 }
-};
-  
-#define ANIM_USER_START 6
+	};
 
+typedef struct cost_parser {
+	scc_lex_t *lex;
+	cost_pic_t* cur_pic;
+	cost_pic_t* pic_list;
+	cost_limb_t limbs[COST_MAX_LIMBS];
+	cost_limb_t* cur_limb;
+	cost_anim_t anims[COST_MAX_ANIMS];
+	cost_anim_t* cur_anim;
+	cost_anim_dir_t* cur_dir;
+	unsigned pal_size;
+	uint8_t pal[COST_MAX_PALETTE_SIZE];
+	// Default to no flip
+	unsigned cost_flags;
+	scc_fd_t* out_fd;
+
+	char* cost_output;
+	char* img_path;
+} cost_parser_t;
 
 #endif

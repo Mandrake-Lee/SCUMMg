@@ -25,9 +25,8 @@
  */
 
 #include "scc_target.h"
-#include <stdint.h>
 
-static int scc_addr_max_v6[] = {
+const int scc_addr_max_v6[] = {
     0,                       // unused
     0x3FFF,                  // VAR
     0xFF,                    // ROOM
@@ -49,7 +48,7 @@ static int scc_addr_max_v6[] = {
     0x7FFFFFFF               // VOICE
 };
 
-static int scc_addr_min_v6[] = {
+const int scc_addr_min_v6[] = {
     0,                       // nothing
     0x100,                   // VAR (don't use the engine vars)
     1,                       // ROOM
@@ -72,7 +71,7 @@ static int scc_addr_min_v6[] = {
 };
 
 
-static int scc_addr_max_v7[] = {
+const int scc_addr_max_v7[] = {
     0,                       // unused
     0x3FFF,                  // VAR
     0xFF,                    // ROOM
@@ -94,7 +93,7 @@ static int scc_addr_max_v7[] = {
     0x7FFFFFFF               // VOICE
 };
 
-static int scc_addr_min_v7[] = {
+const int scc_addr_min_v7[] = {
     0,                       // nothing
     0x100,                     // VAR (don't use the engine vars)
     1,                       // ROOM
@@ -116,7 +115,7 @@ static int scc_addr_min_v7[] = {
     0                        // VOICE
 };
 
-static scc_target_t target_list[] = {
+const scc_target_t target_list[] = {
     { 6, scc_func_v6, scc_addr_max_v6, scc_addr_min_v6, 200 },
     { 7, scc_func_v7, scc_addr_max_v7, scc_addr_min_v7, 2000 },
     { -1 }

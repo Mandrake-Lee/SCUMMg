@@ -29,27 +29,22 @@
 #ifndef SCC_TARGET_H
 #define SCC_TARGET_H
 
-
-#include "scc_parse.h"
+#include "scc_sym.h"
+#include "scc_code.h"
 #include "scc_func.h"
 #include <stddef.h>
+#include <stdint.h>
 
-typedef struct scc_target_st scc_target_t;
+/* Global variables */
+/*
+extern const int scc_addr_max_v6[];
+extern const int scc_addr_min_v6[];
+extern const int scc_addr_max_v7[];
+extern const int scc_addr_min_v7[];
+extern const scc_target_t target_list[];
+*/
 
 scc_target_t* scc_get_target(int version);
-
-typedef struct scc_target_st {
-    /// Target version
-    int          version;
-    /// List of function list
-    scc_func_t** func_list;
-    /// Highst possible address for each ressource type
-    int*         addr_max;
-    /// Lowest address that can be used
-    int*         addr_min;
-    /// Maximal number of global scripts
-    int          max_global_scr;
-} scc_target_t;
 
 
 #endif

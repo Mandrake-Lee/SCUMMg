@@ -32,7 +32,7 @@
 #include <errno.h>
 
 #include "scc_util.h"
-#include "scc_parse.h"
+//#include "scc_parse.h"
 #include "scc_ns.h"
 
 
@@ -543,4 +543,49 @@ scc_symbol_t* scc_ns_get_sym_at(scc_ns_t* ns,int type,int addr) {
   }
   
   return NULL;
+}
+
+scc_script_t* scc_script_new(scc_ns_t* ns, scc_instruct_t* inst,
+                             uint8_t return_op,char close_scr) {
+  scc_code_t* code = scc_instruct_gen_code(inst);
+  scc_sym_fix_t* rf = NULL, *rf_last = NULL, *r;
+  scc_symbol_t* sym;
+  int p,l;
+  uint8_t* data;
+  scc_script_t* scr;
+  
+  if(!code) return NULL;
+
+  l = scc_code_size(code) + (close_scr ? 1 : 0);
+  data = malloc(l);
+
+  for(p = 0 ; code ; p+= code->len, code = code->next) {
+    memcpy(&data[p],code->data,code->len);
+    if(code->fix == SCC_FIX_RETURN) {
+      data[p] = return_op;
+      continue;
+    }
+    if(code->fix >= SCC_FIX_RES) {
+      uint16_t rid = SCC_GET_16LE(data,p);
+      sym = scc_ns_get_sym_with_id(ns,code->fix - SCC_FIX_RES,rid);
+      if(!sym) {
+	scc_log(LOG_ERR,"Unable to find resource %d of type %d\n",
+                rid,code->fix - SCC_FIX_RES);
+	continue;
+      }
+      r = calloc(1,sizeof(scc_sym_fix_t));
+      r->off = p;
+      r->sym = sym;
+      SCC_LIST_ADD(rf,rf_last,r);
+    }
+  }
+
+  if(close_scr) data[l-1] = return_op;
+
+  scr = calloc(1,sizeof(scc_script_t));
+  scr->code = data;
+  scr->code_len = l;
+  scr->sym_fix = rf;
+
+  return scr;
 }

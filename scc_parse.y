@@ -26,22 +26,36 @@
  * @brief ScummC compiler
  */
 %output "scc_parse_bison.c"
-%defines "scc_parse_bison.h"
+%defines "scc_lex_bison.h"
 %define api.pure full
 %parse-param {struct scc_parser *v_sccp}
 %lex-param {scc_parser_t *YYLEX_PARAM}
 
 %code requires {
 #define YYSTYPE scc_bison_val_t
+//#define SCC_BUILD
+
+/* Forward declaration that will be completed with its related parse file .h */
+typedef union scc_bison_val_s scc_bison_val_t;
 }
 
 %code provides{
+/*
 #include "scc_parse_api.h"
 #include "scc_help.h"
+*/
+#pragma message "I'm loaded!"
+
 }
 
 %code {
+//#define SCC_BUILD
 #include "config.h"
+#include "scc_parse.h"
+#include "scc_code.h"
+#include "scc_ns.h"
+//#include "scc_parse_api.h"
+#include "scc_lexer.h"
 
 #define YYERROR_VERBOSE 1
 

@@ -22,9 +22,11 @@
  * @ingroup scc lex
  * @brief ScummC lexer.
  */
-
-#include "scc_lex.h"
-#include "scc_parse_bison.h"
+//#include "scc_lex_bison.h"
+//#include "scc_lex.h"
+//#include "scc_parse.h"
+#include "scc_lexer.h"
+#include "scc_lex.c"	/* This looks awful but has its rationale */
 
 // List of all the keywords
 // it must be kept sorted bcs a binary search is used on it
