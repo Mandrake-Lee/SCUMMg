@@ -1,0 +1,59 @@
+--- a/engines/scumm/detection_tables.h
++++ b/engines/scumm/detection_tables.h
+@@ -65,6 +65,7 @@
+ 	{ "monkey2", "Monkey Island 2: LeChuck's Revenge" },
+ 	{ "pass", "Passport to Adventure" },
+ 	{ "samnmax", "Sam & Max Hit the Road" },
++	{ "scummc6", "ScummC games for v6" },
+ 	{ "tentacle", "Day of the Tentacle" },
+ 	{ "zak", "Zak McKracken and the Alien Mindbenders" },
+ 	{ "indyloom", "Indiana Jones and the Last Crusade & Loom" },
+@@ -72,6 +73,7 @@
+ 	{ "zakloom", "Zak McKracken & Loom" },
+ 	{ "ft", "Full Throttle" },
+ 	{ "dig", "The Dig" },
++	{ "scummc7", "ScummC games for v7" },
+ 	{ "comi", "The Curse of Monkey Island" },
+ 
+ 	{ "activity", "Putt-Putt & Fatty Bear's Activity Pack" },
+@@ -214,6 +216,9 @@
+ 	{"samnmax",  "", 0, GID_SAMNMAX,  6, 0, MDT_ADLIB | MDT_MIDI | MDT_PREFER_GM, GF_USE_KEY, UNK, GUIO3(GUIO_RENDEREGA, GUIO_ENHANCEMENTS, GUIO_ORIGINALGUI)},
+ 	{"samnmax",  "Floppy", 0, GID_SAMNMAX,  6, 0, MDT_ADLIB | MDT_MIDI | MDT_PREFER_GM, GF_USE_KEY, UNK, GUIO4(GUIO_NOSPEECH, GUIO_RENDEREGA, GUIO_ENHANCEMENTS, GUIO_ORIGINALGUI)},
+ 
++	{"scummc6", "", 0, GID_SCUMMC6, 6, 0, MDT_ADLIB | MDT_MIDI | MDT_PREFER_GM, 0, UNK, GUIO0()},
++	{"scummc7", "", "", GID_SCUMMC7, 7, 0, MDT_NONE, 0, UNK, GUIO0()},
++	
+ 	{"ft",   "", 0, GID_FT,  7, 0, MDT_NONE, 0, UNK, GUIO4(GUIO_NOMIDI, GUIO_ENHANCEMENTS, GUIO_ORIGINALGUI, GUIO_LOWLATENCYAUDIO)},
+ 	{"ft",   "Demo", 0, GID_FT,  7, 0, MDT_NONE, GF_DEMO, UNK, GUIO3(GUIO_NOMIDI, GUIO_ORIGINALGUI, GUIO_LOWLATENCYAUDIO)},
+ 
+@@ -463,6 +468,9 @@
+ 	{ "samnmax", "snmidemo.%03d", kGenDiskNum, UNK_LANG, UNK, 0 },
+ 	{ "samnmax", "sdemo.sm%d", kGenDiskNum, Common::DE_DEU, UNK, 0 },
+ 
++	{ "scummc6", "scummc.%03d", kGenDiskNum, UNK_LANG, UNK, 0 },
++	{ "scummc6", "scummc6.%03d", kGenDiskNum, UNK_LANG, UNK, 0 },
++
+ 	{ "dig", "dig.la%d", kGenDiskNum, UNK_LANG, UNK, 0 },
+ 	{ "dig", "thedig.la%d", kGenDiskNum, UNK_LANG, UNK, "Demo" }, // Used by an alternate version of the demo
+ 	{ "dig", "The Dig Data", kGenUnchanged, UNK_LANG, Common::kPlatformMacintosh, 0 },
+@@ -478,6 +486,8 @@
+ 	{ "ft", "Vollgas Data", kGenUnchanged, Common::DE_DEU, Common::kPlatformMacintosh, 0 },
+ 	{ "ft", "Vollgas Demo Data", kGenUnchanged, Common::DE_DEU, Common::kPlatformMacintosh, "Demo" },
+ 
++	{ "scummc7", "scummc7.%03d", kGenDiskNum, UNK_LANG, UNK, 0 },
++
+ 	{ "comi", "comi.la%d", kGenDiskNum, UNK_LANG, UNK, 0 },
+ 
+ 	{ "activity", "activity", kGenHEPC, UNK_LANG, UNK, 0 },
+--- a/engines/scumm/detection.h	2024-01-09 20:42:54.814283386 +0100
++++ b/engines/scumm/detection.h	2024-01-09 20:45:38.884282530 +0100
+@@ -368,6 +368,9 @@
+ 	GID_TENTACLE,
+ 	GID_ZAK,
+ 
++	GID_SCUMMC6,
++	GID_SCUMMC7,
++	
+ 	GID_HEGAME,      // Generic name for all HE games with default behavior
+ 	GID_PUTTDEMO,
+ 	GID_FBEAR,

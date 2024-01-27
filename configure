@@ -719,19 +719,19 @@ echo "asprintf(): $asprintf"
 gtk_def='#undef HAVE_GTK'
 if [ "$gtk" != "no" ] ; then
     gtk=no
-    if ( $PKGCONFIG --exists gtk+-2.0 ) 2> /dev/null ; then
-	gtkver=`( $PKGCONFIG --modversion gtk+-2.0 ) 2> /dev/null`
-	if $PKGCONFIG --atleast-version=2.4 gtk+-2.0 ; then
+    if ( $PKGCONFIG --exists gtk+-3.0 ) 2> /dev/null ; then
+	gtkver=`( $PKGCONFIG --modversion gtk+-3.0 ) 2> /dev/null`
+	if $PKGCONFIG --atleast-version=3.24 gtk+-3.0 ; then
 	    gtk=yes
 	    gtk_def='#define HAVE_GTK 1'
-	    gtk_cflags=`$PKGCONFIG --cflags gtk+-2.0`
-	    gtk_ldflags=`$PKGCONFIG --libs gtk+-2.0`
-	    echo "Gtk+2.4: yes ($gtkver)"
+	    gtk_cflags=`$PKGCONFIG --cflags gtk+-3.0`
+	    gtk_ldflags=`$PKGCONFIG --libs gtk+-3.0`
+	    echo "Gtk+3.0: yes ($gtkver)"
 	else
-	    echo "Gtk+2.4: no ($gtkver)"
+	    echo "Gtk+3.0: no ($gtkver)"
 	fi
     else
-	echo "Gtk+2.4: no"
+	echo "Gtk+3.0: no"
     fi
 else
     echo "Gtk+2.4: disabled"
@@ -767,15 +767,15 @@ fi
 sdl_def='#undef HAVE_SDL'
 if [ "$sdl" != "no" ] ; then
     sdl=no
-    sdlver=`( $PKGCONFIG --modversion sdl ) 2> /dev/null`
+    sdlver=`( $PKGCONFIG --modversion sdl2 ) 2> /dev/null`
     if [ $? -eq 0 ] ; then
 	sdl=yes
 	sdl_def='#define HAVE_SDL 1'
-	sdl_cflags=`$PKGCONFIG --cflags sdl`
-	sdl_ldflags=`$PKGCONFIG --libs sdl`
-	echo "SDL: yes ($sdlver)"
+	sdl_cflags=`$PKGCONFIG --cflags sdl2`
+	sdl_ldflags=`$PKGCONFIG --libs sdl2`
+	echo "SDL2: yes ($sdlver)"
     else
-	echo "SDL: no"
+	echo "SDL2: no"
     fi
 else
     echo "SDL: disabled"
