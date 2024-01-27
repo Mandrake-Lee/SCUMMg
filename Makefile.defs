@@ -287,13 +287,6 @@ TEMP_DIR := temp
 SCUMMVM_ZIPBALL := scummvm-master.zip
 SCUMMG_PATCH := scummvm-2.9.0.patch
 
-
-
-#.ONESHELL:
-#scummvm_script:	; $(value scummvm_down_patch_compile) $(TEMP_DIR)	$(SCUMMVM_URL) $(SCUMMVM_ZIPBALL) $(SRCDIR)	$(SCUMMG_PATCH)
-#scummvm_script:	; (eval $(value scummvm_down_patch_compile) $(TEMP_DIR) $(SCUMMVM_URL) $(SCUMMVM_ZIPBALL) $(SRCDIR) $(SCUMMG_PATCH))
-#scummvm_script:	; $(scummvm_down_patch_compile) temp	www.google.es kk.zip ~joramar/SCUMMg patchy
-
 scummvm_script:
 	@sh $(SRCDIR)/scummvm_down_patch_compile.sh $(TEMP_DIR)	$(SCUMMVM_URL) $(SCUMMVM_ZIPBALL) $(SRCDIR) $(SCUMMG_PATCH)
 
