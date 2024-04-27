@@ -7,6 +7,11 @@ SRCS = cppmain.c \
 	tokenizer.c \
 	preproc.c
 
+ifneq (,$(findstring mingw,$(CC)))
+SRCS += libfmemopen.c
+$(info -->MINGW found. Adding fmemopen() )
+endif
+
 LIBULZ_BASE?=../cdev/cdev/lib/
 
 LIBS = 
@@ -24,7 +29,7 @@ MAKEFILE := $(firstword $(MAKEFILE_LIST))
 all: $(PROG)
 
 clean:
-	rm -f $(PROG)
+	rm -f $(PROG) $(PROG).exe
 	rm -f $(OBJS)
 
 rebuild:

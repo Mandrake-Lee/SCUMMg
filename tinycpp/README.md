@@ -1,5 +1,30 @@
-tinycpp - a small, embeddable C-style preprocessor
+SCUMMpp - a small, embeddable mixed SCUMM & C-style preprocessor
 ==================================================
+
+SCUMMpp was created to be a true preprocessor for the SCUMM language.
+
+Therefore, sources of tinycpp were modified in order to adapt key differences 
+with C i.e.:
+- define (instead of #define)
+- include (instead of #include)
+- usage of ';' as single line comment (instead of '//')
+
+Mixed declarations, e.g. usage of #define and define, are forbidden.
+
+Besides this, the preprocessor should behave as the original code with makes it
+a very powerful pp.
+
+Note that some SCUMM original features are missing:
+- #code on / off
+- #lex on / off
+
+Additionally, support to mingw has been added via fmemopen_windows project:
+https://github.com/Arryboom/fmemopen_windows
+
+Now below the original notes from tinycpp
+
+Original notes
+----
 
 tinycpp was created with the intention of having a C-style preprocessor
 for use in an assembler i'm working on.
