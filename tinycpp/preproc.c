@@ -1,11 +1,3 @@
-/*
- * Copyright © 2019 rofl0r.
- *
- * MIT license as per COPYING file
- * 
- * Tweaks to work with SCUMMg by Jorge Amorós-Argos
- */
-
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
@@ -13,6 +5,16 @@
 #include "tokenizer.h"
 #include "tglist.h"
 #include "hbmap.h"
+
+#if defined _WIN32 | defined __CYGWIN__
+/* https://github.com/Arryboom/fmemopen_windows  */
+/*
+ * Using this implementation of fmemopen() in windows; here we will exploit 
+ * the fact that the stream opened is dynamically adjusted in size upon demands,
+ * a kind of open_memstream().
+ */
+#include "libfmemopen.h"
+#endif
 
 #define MACRO_FLAG_OBJECTLIKE (1U<<31)
 #define MACRO_FLAG_VARIADIC (1U<<30)
@@ -114,11 +116,11 @@ static void free_macros(struct cpp *cpp) {
 static void error_or_warning(const char *err, const char* type, struct tokenizer *t, struct token *curr) {
 	unsigned column = curr ? curr->column : t->column;
 	unsigned line  = curr ? curr->line : t->line;
-	dprintf(2, "<%s> %u:%u %s: '%s'\n", t->filename, line, column, type, err);
-	dprintf(2, "%s\n", t->buf);
+	fprintf(stderr, "<%s> %u:%u %s: '%s'\n", t->filename, line, column, type, err);
+	fprintf(stderr, "%s\n", t->buf);
 	for(int i = 0; i < strlen(t->buf); i++)
-		dprintf(2, "^");
-	dprintf(2, "\n");
+		fprintf(stderr, "^");
+	fprintf(stderr, "\n");
 }
 static void error(const char *err, struct tokenizer *t, struct token *curr) {
 	error_or_warning(err, "error", t, curr);
@@ -212,7 +214,7 @@ static void emit_token(FILE* out, struct token *tok, const char* strbuf) {
 	} else if(strbuf && token_needs_string(tok)) {
 		fprintf(out, "%s", strbuf);
 	} else {
-		dprintf(2, "oops, dunno how to handle tt %d (%s)\n", (int) tok->type, strbuf);
+		fprintf(stderr, "oops, dunno how to handle tt %d (%s)\n", (int) tok->type, strbuf);
 	}
 }
 
@@ -234,12 +236,6 @@ static int include_file(struct cpp* cpp, struct tokenizer *t, FILE* out) {
 		return 0;
 	}
 	// TODO: different path lookup depending on whether " or <
-	char * includepath = cpp_detect_includedir(t->buf);
- 	printf ("Including file:\t%s\n", t->buf);
-	if (includepath != NULL)
-	printf("Include declaration = %s\n", cpp_detect_includedir(t->buf));
-	
-	
 	size_t i;
 	FILE *f = 0;
 	tglist_foreach(&cpp->includedirs, i) {
@@ -249,7 +245,7 @@ static int include_file(struct cpp* cpp, struct tokenizer *t, FILE* out) {
 		if(f) break;
 	}
 	if(!f) {
-		dprintf(2, "%s: ", t->buf);
+		fprintf(stderr, "%s: ", t->buf);
 		perror("fopen");
 		return 0;
 	}
@@ -276,6 +272,13 @@ static int emit_error_or_warning(struct tokenizer *t, int is_error) {
 
 static FILE *freopen_r(FILE *f, char **buf, size_t *size) {
 	fflush(f);
+#if defined _WIN32 | defined __CYGWIN__
+	fseek(f, 0L, SEEK_END);
+	*size = ftell(f);
+	rewind(f);
+	*buf = malloc(*size);
+	fread(*buf, 1, *size, f);
+#endif
 	fclose(f);
 	return fmemopen(*buf, *size, "r");
 }
@@ -318,7 +321,7 @@ static int parse_macro(struct cpp *cpp, struct tokenizer *t) {
 	}
 	const char* macroname = strdup(t->buf);
 #ifdef DEBUG
-	dprintf(2, "parsing macro %s\n", macroname);
+	fprintf(stderr, "parsing macro %s\n", macroname);
 #endif
 	int redefined = 0;
 	if(get_macro(cpp, macroname)) {
@@ -393,8 +396,11 @@ static int parse_macro(struct cpp *cpp, struct tokenizer *t) {
 		char *buf;
 		size_t len;
         } contents;
+#if defined _WIN32 | defined __CYGWIN__
+	contents.f = fmemopen("",1,"wb");
+#else		
 	contents.f = open_memstream(&contents.buf, &contents.len);
-
+#endif
 	int backslash_seen = 0;
 	while(1) {
 		/* ignore unknown tokens in macro body */
@@ -410,11 +416,12 @@ static int parse_macro(struct cpp *cpp, struct tokenizer *t) {
 				backslash_seen = 0;
 			}
 		} else {
-			emit_token(contents.f, &curr, t->buf);
+				emit_token(contents.f, &curr, t->buf);
 		}
 	}
 	new.str_contents = freopen_r(contents.f, &contents.buf, &contents.len);
 	new.str_contents_buf = contents.buf;
+
 done:
 	if(redefined) {
 		struct macro *old = get_macro(cpp, macroname);
@@ -468,7 +475,7 @@ unsigned get_macro_info(struct cpp* cpp,
 		int ret = tokenizer_next(t, &tok);
 		if(!ret || tok.type == TT_EOF) break;
 #ifdef DEBUG
-		dprintf(2, "(%s) nest %d, brace %u t: %s\n", name, nest, brace_lvl, t->buf);
+		fprintf(stderr, "(%s) nest %d, brace %u t: %s\n", name, nest, brace_lvl, t->buf);
 #endif
 		struct macro* m = 0;
 		if(tok.type == TT_IDENTIFIER && (m = get_macro(cpp, t->buf)) && !was_visited(t->buf, visited, rec_level)) {
@@ -521,7 +528,11 @@ static int mem_tokenizers_join(
 	struct FILE_container* org, struct FILE_container *inj,
 	struct FILE_container* result,
 	int first, off_t lastpos) {
+#if defined _WIN32 | defined __CYGWIN__
+	result->f = fmemopen("",1,"wb");
+#else		
 	result->f = open_memstream(&result->buf, &result->len);
+#endif
 	size_t i;
 	struct token tok;
 	int ret;
@@ -566,7 +577,6 @@ static int tchain_parens_follows(struct cpp *cpp, int rec_level) {
 	}
 	return -1;
 }
-
 static int stringify(struct cpp *ccp, struct tokenizer *t, FILE* output) {
 	int ret = 1;
 	struct token tok;
@@ -601,7 +611,7 @@ static int stringify(struct cpp *ccp, struct tokenizer *t, FILE* output) {
 /* rec_level -1 serves as a magic value to signal we're using
    expand_macro from the if-evaluator code, which means activating
    the "define" macro */
-static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const char* name, unsigned rec_level, char* visited[]) {
+static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const char* name, unsigned rec_level, char* visited[]) {	
 	int is_define = !strcmp(name, "defined");
 
 	struct macro *m;
@@ -618,7 +628,7 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 		return 0;
 	}
 #ifdef DEBUG
-	dprintf(2, "lvl %u: expanding macro %s (%s)\n", rec_level, name, m->str_contents_buf);
+	fprintf(stderr, "lvl %u: expanding macro %s (%s)\n", rec_level, name, m->str_contents_buf);
 #endif
 
 	if(rec_level == 0 && strcmp(t->filename, "<macro>")) {
@@ -647,7 +657,11 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 	struct FILE_container *argvalues = calloc(MACRO_VARIADIC(m) ? num_args + 1 : num_args, sizeof(struct FILE_container));
 
 	for(i=0; i < num_args; i++)
-		argvalues[i].f = open_memstream(&argvalues[i].buf, &argvalues[i].len);
+#if defined _WIN32 | defined __CYGWIN__
+		argvalues[i].f = fmemopen("", 1, "wb");
+#else
+		argvalues[i].f = open_memstream(&argvalues[i].buf, &argvalues[i].len);	
+#endif	
 
 	/* replace named arguments in the contents of the macro call */
 	if(FUNCTIONLIKE(m)) {
@@ -675,7 +689,7 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 			int ret = tokenizer_next(t, &tok);
 			if(!ret) return 0;
 			if( tok.type == TT_EOF) {
-				dprintf(2, "warning EOF\n");
+				fprintf(stderr, "warning EOF\n");
 				break;
 			}
 			if(!parens && is_char(&tok, ',') && !varargs) {
@@ -708,7 +722,7 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 				if(tokenizer_peek(t) == '\n') continue;
 			}
 			need_arg = 0;
-			emit_token(argvalues[curr_arg].f, &tok, t->buf);
+			emit_token(argvalues[curr_arg].f, &tok, t->buf);	
 		}
 	}
 
@@ -716,7 +730,7 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 		argvalues[i].f = freopen_r(argvalues[i].f, &argvalues[i].buf, &argvalues[i].len);
 		tokenizer_from_file(&argvalues[i].t, argvalues[i].f);
 #ifdef DEBUG
-		dprintf(2, "macro argument %i: %s\n", (int) i, argvalues[i].buf);
+		fprintf(stderr, "macro argument %i: %s\n", (int) i, argvalues[i].buf);
 #endif
 	}
 
@@ -730,7 +744,11 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 	if(!m->str_contents) goto cleanup;
 
 	struct FILE_container cwae = {0}; /* contents_with_args_expanded */
+#if defined _WIN32 | defined __CYGWIN__
+	cwae.f = fmemopen("",1,"wb");
+#else	
 	cwae.f = open_memstream(&cwae.buf, &cwae.len);
+#endif
 	FILE* output = cwae.f;
 
 	struct tokenizer t2;
@@ -807,7 +825,7 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 	if(1) {
 		cwae.f = freopen_r(cwae.f, &cwae.buf, &cwae.len);
 #ifdef DEBUG
-		dprintf(2, "contents with args expanded: %s\n", cwae.buf);
+		fprintf(stderr, "contents with args expanded: %s\n", cwae.buf);
 #endif
 		tokenizer_from_file(&cwae.t, cwae.f);
 		size_t mac_cnt = 0;
@@ -841,7 +859,11 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 				for(j = 0; j < mi->first+1; ++j)
 					tokenizer_next(&cwae.t, &utok);
 				struct FILE_container t2 = {0}, tmp = {0};
+#if defined _WIN32 | defined __CYGWIN__
+				t2.f = fmemopen("", 1, "wb");
+#else
 				t2.f = open_memstream(&t2.buf, &t2.len);
+#endif
 				if(!expand_macro(cpp, &cwae.t, t2.f, mi->name, rec_level+1, visited))
 					return 0;
 				t2.f = freopen_r(t2.f, &t2.buf, &t2.len);
@@ -850,14 +872,14 @@ static int expand_macro(struct cpp* cpp, struct tokenizer *t, FILE* out, const c
 				off_t cwae_pos = tokenizer_ftello(&cwae.t);
 				tokenizer_rewind(&cwae.t);
 #ifdef DEBUG
-				dprintf(2, "merging %s with %s\n", cwae.buf, t2.buf);
+				fprintf(stderr, "merging %s with %s\n", cwae.buf, t2.buf);
 #endif
 				int diff = mem_tokenizers_join(&cwae, &t2, &tmp, mi->first, cwae_pos);
 				free_file_container(&cwae);
 				free_file_container(&t2);
 				cwae = tmp;
 #ifdef DEBUG
-				dprintf(2, "result: %s\n", cwae.buf);
+				fprintf(stderr, "result: %s\n", cwae.buf);
 #endif
 				if(diff == 0) continue;
 				for(j = 0; j < mac_cnt; ++j) {
@@ -1107,7 +1129,7 @@ static int do_eval(struct tokenizer *t, int *result) {
 	int err = 0;
 	*result = expr(t, 0, &err);
 #ifdef DEBUG
-	dprintf(2, "eval result: %d\n", *result);
+	fprintf(stderr, "eval result: %d\n", *result);
 #endif
 	return !err;
 }
@@ -1125,7 +1147,12 @@ static int evaluate_condition(struct cpp *cpp, struct tokenizer *t, int *result,
 		error("expected whitespace after if/elif", t, &curr);
 		return 0;
 	}
+#if defined _WIN32 | defined __CYGWIN__
+	FILE *f = fmemopen("",1,"wb");
+#else
 	FILE *f = open_memstream(&bufp, &size);
+#endif
+
 	while(1) {
 		ret = tokenizer_next(t, &curr);
 		if(!ret) return ret;
@@ -1152,7 +1179,7 @@ static int evaluate_condition(struct cpp *cpp, struct tokenizer *t, int *result,
 		return 0;
 	}
 #ifdef DEBUG
-	dprintf(2, "evaluating condition %s\n", bufp);
+	fprintf(stderr, "evaluating condition %s\n", bufp);
 #endif
 	struct tokenizer t2;
 	tokenizer_from_file(&t2, f);
@@ -1175,9 +1202,10 @@ int parse_file(struct cpp *cpp, FILE *f, const char *fn, FILE *out) {
 	struct token curr;
 	tokenizer_init(&t, f, TF_PARSE_STRINGS);
 	tokenizer_set_filename(&t, fn);
-	tokenizer_register_marker(&t, MT_MULTILINE_COMMENT_START, MULTILINE_COMMENT_START_LIT); /**/
-	tokenizer_register_marker(&t, MT_MULTILINE_COMMENT_END, MULTILINE_COMMENT_END_LIT);
-	tokenizer_register_marker(&t, MT_SINGLELINE_COMMENT_START, SCUMM_COMMENT_LIT);
+	tokenizer_register_marker(&t, MT_MULTILINE_COMMENT_START, "/*"); /**/
+	tokenizer_register_marker(&t, MT_MULTILINE_COMMENT_END, "*/");
+	/* SCUMM single line comments start with ';' */
+	tokenizer_register_marker(&t, MT_SINGLELINE_COMMENT_START, ";");
 	int ret, newline=1, ws_count = 0;
 
 	int if_level = 0, if_level_active = 0, if_level_satisfied = 0;
@@ -1196,15 +1224,7 @@ int parse_file(struct cpp *cpp, FILE *f, const char *fn, FILE *out) {
 	} while(0)
 #define skip_conditional_block (if_level > if_level_active)
 
-	static const char* directives[] = {SCUMM_INCLUDE_LIT, ERROR_LIT,
-										WARNING_LIT, SCUMM_DEFINE_LIT,
-										UNDEF_LIT, IF_LIT, ELIF_LIT,
-										ELSE_LIT, IFDEF_LIT, IFNDEF_LIT,
-										ENDIF_LIT, LINE_LIT, PRAGMA_LIT, 0};
-
-	/* DEBUG*/
-				printf("Token before while =\t%s\n",t.buf);
-
+	static const char* directives[] = {"include", "error", "warning", "define", "undef", "if", "elif", "else", "ifdef", "ifndef", "endif", "line", "pragma", 0};
 	while((ret = tokenizer_next(&t, &curr)) && curr.type != TT_EOF) {
 		newline = curr.column == 0;
 		if(newline) {
@@ -1212,149 +1232,152 @@ int parse_file(struct cpp *cpp, FILE *f, const char *fn, FILE *out) {
 			if(!ret) return ret;
 		}
 		if(curr.type == TT_EOF) break;
+		
+		/* See if meets SCUMM include or define, no prepending # */
+		int SCUMM_directive_index = -1;
+		if(curr.type == TT_IDENTIFIER){
+			if (!strcmp("include",t.buf))
+				SCUMM_directive_index = 0;
+			else if (!strcmp("define",t.buf))
+				SCUMM_directive_index = 3;
+		}
+		
 		if(skip_conditional_block && !(newline && is_char(&curr, '#'))) continue;
 
-		printf("Token to be evaluated =\t%s\ntoken.value = \t%c\n",t.buf,curr.value);
-
-		if(is_char(&curr, '#')) {
-			if(!newline) {
+		if(is_char(&curr, '#') || SCUMM_directive_index != -1) {
+			int index;
+			int is_char_flag = is_char(&curr, '#');
+			if(is_char_flag && !newline){
 				error("stray #", &t, &curr);
 				return 0;
 			}
-		}
-		/*Make SCUMM changes here */
-//		int index = expect(&t, TT_IDENTIFIER, directives, &curr);
 
-		/* We don't know for sure that pp syntax starts with #, therefore
-		   we must scan for all entries and compare
-		*/
-		int index = 0;
-		while(directives[index]) {
-			if(!strcmp(directives[index], t.buf))
+			if (SCUMM_directive_index != -1)
+				index = SCUMM_directive_index;
+			else
+				index = expect(&t, TT_IDENTIFIER, directives, &curr);
+
+			/* Error wrong definitions i.e. where prepending # is forbidden */
+			if ( is_char_flag && (index == 0 || index == 3)){
+				error("These SCUMM directives do not prepend '#' !!!", &t, &curr);
+				return 0;
+			}
+			
+			if(index == -1) {
+				if(skip_conditional_block) continue;
+				error("invalid preprocessing directive", &t, &curr);
+				return 0;
+			}
+			if(skip_conditional_block) switch(index) {
+				case 0: case 1: case 2: case 3: case 4:
+				case 11: case 12:
+					continue;
+				default: break;
+			}
+			switch(index) {
+			case 0:
+				ret = include_file(cpp, &t, out);
+				if(!ret) return ret;
 				break;
-			else index++;
-		}
-		
-		
-		/* DEBUG */
-	//			printf("Token actually evaluated =\t%s\nindex =\t%d\nsizeof = \t%d\n",t.buf,index, sizeof(directives)/sizeof(directives[0]));
-				
-		if(index == sizeof(directives)/sizeof(directives[0])) {
-			if(skip_conditional_block) continue;
-			error("invalid preprocessing directive", &t, &curr);
-			return 0;
-		}
-		if(skip_conditional_block) switch(index) {
-			case 0: case 1: case 2: case 3: case 4:
-			case 11: case 12:
-				continue;
-			default: break;
-		}
-		switch(index) {
-		case 0:
-			ret = include_file(cpp, &t, out);
-			if(!ret) return ret;
-			break;
-		case 1:
-			ret = emit_error_or_warning(&t, 1);
-			if(!ret) return ret;
-			break;
-		case 2:
-			ret = emit_error_or_warning(&t, 0);
-			if(!ret) return ret;
-			break;
-		case 3:
-			ret = parse_macro(cpp, &t);
-			if(!ret) return ret;
-			break;
-		case 4:
-			if(!skip_next_and_ws(&t, &curr)) return 0;
-			if(curr.type != TT_IDENTIFIER) {
-				error("expected identifier", &t, &curr);
-				return 0;
-			}
-			undef_macro(cpp, t.buf);
-			break;
-		case 5: // if
-			if(all_levels_active()) {
-				char* visited[MAX_RECURSION] = {0};
-				if(!evaluate_condition(cpp, &t, &ret, visited)) return 0;
-				free_visited(visited);
-				set_level(if_level + 1, ret);
-			} else {
-				set_level(if_level + 1, 0);
-			}
-			break;
-		case 6: // elif
-			if(prev_level_active() && if_level_satisfied < if_level) {
-				char* visited[MAX_RECURSION] = {0};
-				if(!evaluate_condition(cpp, &t, &ret, visited)) return 0;
-				free_visited(visited);
-				if(ret) {
-					if_level_active = if_level;
-					if_level_satisfied = if_level;
+			case 1:
+				ret = emit_error_or_warning(&t, 1);
+				if(!ret) return ret;
+				break;
+			case 2:
+				ret = emit_error_or_warning(&t, 0);
+				if(!ret) return ret;
+				break;
+			case 3:
+				ret = parse_macro(cpp, &t);
+				if(!ret) return ret;
+				break;
+			case 4:
+				if(!skip_next_and_ws(&t, &curr)) return 0;
+				if(curr.type != TT_IDENTIFIER) {
+					error("expected identifier", &t, &curr);
+					return 0;
 				}
-			} else if(if_level_active == if_level) {
-				--if_level_active;
-			}
-			break;
-		case 7: // else
-			if(prev_level_active() && if_level_satisfied < if_level) {
-				if(1) {
-					if_level_active = if_level;
-					if_level_satisfied = if_level;
+				undef_macro(cpp, t.buf);
+				break;
+			case 5: // if
+				if(all_levels_active()) {
+					char* visited[MAX_RECURSION] = {0};
+					if(!evaluate_condition(cpp, &t, &ret, visited)) return 0;
+					free_visited(visited);
+					set_level(if_level + 1, ret);
+				} else {
+					set_level(if_level + 1, 0);
 				}
-			} else if(if_level_active == if_level) {
-				--if_level_active;
-			}
-			break;
-		case 8: // ifdef
-		case 9: // ifndef
-			if(!skip_next_and_ws(&t, &curr) || curr.type == TT_EOF) return 0;
-			ret = !!get_macro(cpp, t.buf);
-			if(index == 9) ret = !ret;
+				break;
+			case 6: // elif
+				if(prev_level_active() && if_level_satisfied < if_level) {
+					char* visited[MAX_RECURSION] = {0};
+					if(!evaluate_condition(cpp, &t, &ret, visited)) return 0;
+					free_visited(visited);
+					if(ret) {
+						if_level_active = if_level;
+						if_level_satisfied = if_level;
+					}
+				} else if(if_level_active == if_level) {
+					--if_level_active;
+				}
+				break;
+			case 7: // else
+				if(prev_level_active() && if_level_satisfied < if_level) {
+					if(1) {
+						if_level_active = if_level;
+						if_level_satisfied = if_level;
+					}
+				} else if(if_level_active == if_level) {
+					--if_level_active;
+				}
+				break;
+			case 8: // ifdef
+			case 9: // ifndef
+				if(!skip_next_and_ws(&t, &curr) || curr.type == TT_EOF) return 0;
+				ret = !!get_macro(cpp, t.buf);
+				if(index == 9) ret = !ret;
 
-			if(all_levels_active()) {
-				set_level(if_level + 1, ret);
-			} else {
-				set_level(if_level + 1, 0);
+				if(all_levels_active()) {
+					set_level(if_level + 1, ret);
+				} else {
+					set_level(if_level + 1, 0);
+				}
+				break;
+			case 10: // endif
+				set_level(if_level-1, -1);
+				break;
+			case 11: // line
+				ret = tokenizer_read_until(&t, "\n", 1);
+				if(!ret) {
+					error("unknown", &t, &curr);
+					return 0;
+				}
+				break;
+			case 12: // pragma
+				emit(out, "#pragma");
+				while((ret = x_tokenizer_next(&t, &curr)) && curr.type != TT_EOF) {
+					emit_token(out, &curr, t.buf);
+					if(is_char(&curr, '\n')) break;
+				}
+				if(!ret) return ret;
+				break;
+			default:
+				break;
 			}
-			break;
-		case 10: // endif
-			set_level(if_level-1, -1);
-			break;
-		case 11: // line
-			ret = tokenizer_read_until(&t, "\n", 1);
-			if(!ret) {
-				error("unknown", &t, &curr);
-				return 0;
+			continue;
+		} else {
+			while(ws_count) {
+				emit(out, " ");
+				--ws_count;
 			}
-			break;
-		case 12: // pragma
-			emit(out, "#pragma");
-			while((ret = x_tokenizer_next(&t, &curr)) && curr.type != TT_EOF) {
-				emit_token(out, &curr, t.buf);
-				if(is_char(&curr, '\n')) break;
-			}
-			if(!ret) return ret;
-			break;
-		default:
-			break;
 		}
-//		continue;
-
-//		} else {
-		while(ws_count) {
-			emit(out, " ");
-			--ws_count;
-		}
-//		}
 #if DEBUG
-		dprintf(2, "(stdin:%u,%u) ", curr.line, curr.column);
+		fprintf(stderr, "(stdin:%u,%u) ", curr.line, curr.column);
 		if(curr.type == TT_SEP)
-			dprintf(2, "separator: %c\n", curr.value == '\n'? ' ' : curr.value);
+			fprintf(stderr, "separator: %c\n", curr.value == '\n'? ' ' : curr.value);
 		else
-			dprintf(2, "%s: %s\n", tokentype_to_str(curr.type), t.buf);
+			fprintf(stderr, "%s: %s\n", tokentype_to_str(curr.type), t.buf);
 #endif
 		if(curr.type == TT_IDENTIFIER) {
 			char* visited[MAX_RECURSION] = {0};
@@ -1396,33 +1419,13 @@ void cpp_add_includedir(struct cpp *cpp, const char* includedir) {
 	tglist_add(&cpp->includedirs, strdup(includedir));
 }
 
-/*
- *	Depending on the syntax of the include_decl (typically in the #define)
- *	this is, if a relative or absolute path is declared, we return a path
- *	if succeed.
- */
-
-const char* cpp_detect_includedir(const char* include_decl){
-	char *includepath;
-	int i;
-
-	if (strstr(include_decl,PATH_DELIMITER_LINUX) ||
-		strstr(include_decl,"..") ||
-		strstr(include_decl,".") ){
-			includepath = realpath(include_decl, NULL);
-			if (includepath == NULL) return NULL;
-			i = strlen(includepath);
-			while( *(includepath+i) != PATH_DELIMITER_LINUX[0]) i--;
-			*(includepath+i) = '\0';
-			return includepath;
-		}
-	return NULL;
-
-}
-
 int cpp_add_define(struct cpp *cpp, const char *mdecl) {
 	struct FILE_container tmp = {0};
-	tmp.f = open_memstream(&tmp.buf, &tmp.len);
+#if defined _WIN32 | defined __CYGWIN__
+	tmp.f = fmemopen("",1,"wb");
+#else
+	tmp.f = open_memstream(&tmp.buf, &tmp.len);	
+#endif	
 	fprintf(tmp.f, "%s\n", mdecl);
 	tmp.f = freopen_r(tmp.f, &tmp.buf, &tmp.len);
 	tokenizer_from_file(&tmp.t, tmp.f);
