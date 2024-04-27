@@ -190,6 +190,19 @@ endif
 	@echo "Compiling $@ for $(TARGET)" $(MSGLOG)
 	$(call CMD_template,$(CC) -c $(CFLAGS) -o $@ $<,$(LOG))
 
+## tinycpp & fmemopen_windows sources
+## Note: this is nasty workaround to be eliminated
+
+tinycpp/%.o: $(SRCDIR)/tinycpp/%.c
+	@mkdir -p $(@D)
+	@echo "Compiling $@ for $(TARGET)" $(MSGLOG)
+	$(call CMD_template,$(CC) -c $(CFLAGS) -o $@ $<,$(LOG))
+
+fmemopen_windows/%.o: $(SRCDIR)/fmemopen_windows/%.c
+	@mkdir -p $(@D)
+	@echo "Compiling $@ for $(TARGET)" $(MSGLOG)
+	$(call CMD_template,$(CC) -c $(CFLAGS) -o $@ $<,$(LOG))
+
 ## Generated sources
 %.o: %.c
 	@echo "Compiling $@ for $(TARGET)" $(MSGLOG)

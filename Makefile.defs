@@ -85,6 +85,16 @@ TESTS=                          \
 ## If a program have many sources and make bork out with
 ## 'virtual memory exhausted' look at Makefile.target.
 
+#Determine if mingw is in use
+
+ifneq (,$(findstring mingw,$(TARGET)))
+MINGW = YES
+$(info MINGW found = $(MINGW))
+else
+undefine MINGW
+$(info MINGW $(TARGET))
+endif
+
 scc_SRCS=                       \
 	scc_parse_bison.c       \
 	scc_parse.c				\
@@ -100,7 +110,16 @@ scc_SRCS=                       \
 	scc_fd.c                \
 	scc_param.c             \
 	scc_func.c				\
+	tinycpp/preproc.c		\
+	tinycpp/tokenizer.c		\
 	scc_main.c		        \
+
+ifdef MINGW
+scc_SRCS += fmemopen_windows/libfmemopen.c	\
+			fmemopen_windows/realpath.c		\
+
+endif
+
 
 sld_SRCS=                       \
 	scc_ld.c                \

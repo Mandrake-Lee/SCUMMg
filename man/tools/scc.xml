@@ -50,6 +50,9 @@
       <param name="vv">
         Enable debug output.
       </param>
+      <param name="lesspp">
+        Disables experimental SCUMM preprocessor.
+      </param>	  
     </param-group>
     <file name="input.scc" required="true" repeat="true"/>
   </command>
