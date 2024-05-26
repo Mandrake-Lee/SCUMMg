@@ -50,6 +50,8 @@
 
 #define SCVM_ERR_MAX 0x100
 
+#define LOG_SPUTM LOG_DBG
+
 static const char* scvm_error[SCVM_ERR_MAX] = {
   "no error",
   "script bound",
@@ -206,7 +208,8 @@ static void scvm_vars_init(scvm_vars_t* var) {
 }
 
 scvm_t *scvm_new(scvm_backend_t* be, char* path,char* basename,
-                 uint8_t key, int boot_param) {
+                 uint8_t key, int boot_param, unsigned width,
+				 unsigned height, unsigned bpp, unsigned scale) {
   scc_fd_t* fd;
   scvm_t* vm;
   int i,num,len = (path ? strlen(path) + 1 : 0) + strlen(basename);
@@ -255,6 +258,8 @@ scvm_t *scvm_new(scvm_backend_t* be, char* path,char* basename,
   }
   vm = calloc(1,sizeof(scvm_t));
   vm->backend = be;
+	/* Setup sputm video and display scale */
+	scvm_setup_video(vm, width, height, bpp, scale);
   // vars
   vm->boot_param = boot_param;
   vm->num_var = scc_fd_r16le(fd);
@@ -322,12 +327,14 @@ scvm_t *scvm_new(scvm_backend_t* be, char* path,char* basename,
     // scvm_free(vm);
     return NULL;
   }
+  
   // setup the file stuff
   vm->path = strdup(path ? path : ".");
   vm->basename = strdup(basename);
   vm->file_key = key;
   vm->file = calloc(vm->num_file,sizeof(scc_fd_t*));
   vm->file[0] = fd;
+  
   // all 0 ??
   for(i = 0 ; i < num ; i++)
     vm->res[SCVM_RES_ROOM].idx[i].offset = scc_fd_r32le(fd);
@@ -487,8 +494,13 @@ int scvm_random(scvm_t* vm, int min, int max) {
   return vm->backend->random(vm->backend->priv,min,max);
 }
 
-int scvm_init_video(scvm_t* vm, unsigned w, unsigned h, unsigned bpp) {
-  return vm->backend->init_video(vm->backend->priv,w,h,bpp);
+int scvm_setup_video(scvm_t* vm, unsigned w, unsigned h, unsigned bpp, unsigned scale) {
+  return vm->backend->setup_video(vm->backend->priv,w,h,bpp, scale);
+}
+
+
+int scvm_init_video(scvm_t* vm, unsigned w, unsigned h, unsigned bpp, unsigned scale) {
+  return vm->backend->init_video(vm->backend->priv,w,h,bpp, scale);
 }
 
 void scvm_update_palette(scvm_t* vm, scvm_color_t* pal) {
@@ -577,10 +589,10 @@ int scvm_run_threads(scvm_t* vm,unsigned cycles) {
   scvm_thread_t* parent;
   
   while(cycles > 0) {
-    scc_log(LOG_MSG,"VM run threads state: %d\n",vm->state);
+    scc_log(LOG_SPUTM,"VM run threads state: %d\n",vm->state);
     switch(vm->state) {
     case SCVM_BOOT:
-      if(!scvm_init_video(vm,640,480,8)) {
+      if(!scvm_init_video(vm,0,0,0,0)) {	
        scc_log(LOG_ERR,"Failed to open video output.\n");
         return SCVM_ERR_VIDEO_MODE;
       } else {
@@ -649,12 +661,12 @@ int scvm_run_threads(scvm_t* vm,unsigned cycles) {
         }
         vm->current_thread = &vm->thread[i];
       }
-      scc_log(LOG_MSG,"\n == VM enter thread %d / script %d @ 0x%x / room %d ==\n",
+      scc_log(LOG_SPUTM,"\n == VM enter thread %d / script %d @ 0x%x / room %d ==\n",
               vm->current_thread->id,vm->current_thread->script->id,
               vm->current_thread->code_ptr,
               vm->room ? vm->room->id : -1);
       r = scvm_thread_run(vm,vm->current_thread);
-      scc_log(LOG_MSG," == VM leave thread %d / script %d @ 0x%x / room %d ==\n\n",
+      scc_log(LOG_SPUTM," == VM leave thread %d / script %d @ 0x%x / room %d ==\n\n",
               vm->current_thread->id,vm->current_thread->script->id,
               vm->current_thread->code_ptr,
               vm->room ? vm->room->id : -1);
@@ -892,7 +904,7 @@ int scvm_run_threads(scvm_t* vm,unsigned cycles) {
       vm->state = SCVM_FINISH_CYCLE;
 
     case SCVM_FINISH_CYCLE:
-      scc_log(LOG_MSG,"\n == VM finished cycle %d == \n\n",vm->cycle);
+      scc_log(LOG_SPUTM,"\n == VM finished cycle %d == \n\n",vm->cycle);
       cycles--;
       vm->cycle++;
       vm->state = SCVM_BEGIN_CYCLE;
@@ -971,11 +983,11 @@ int scvm_run_once(scvm_t* vm) {
   r = scvm_run_threads(vm,1);
   if(SCVM_IS_ERR(r)) {
     if(vm->current_thread)
-      scc_log(LOG_MSG,"Script error: %s @ %03d:0x%04X\n",
+      scc_log(LOG_ERR,"Script error: %s @ %03d:0x%04X\n",
               scvm_strerror(r),vm->current_thread->script->id,
               vm->current_thread->op_start);
     else
-      scc_log(LOG_MSG,"Script error: %s\n",scvm_strerror(r));
+      scc_log(LOG_ERR,"Script error: %s\n",scvm_strerror(r));
     return r;
   }
 
@@ -1013,7 +1025,13 @@ int scvm_run(scvm_t* vm) {
 
 typedef struct scvm_backend_priv {
   int inited_video;
+  unsigned width, height, bpp;	/* sputm video size of the VM */
+  unsigned scale;	/* x1, x2, etc.. integer values always */
+  uint32_t device_pixelformat;	/*pixelformat of the device, either RGB or index8 */
   SDL_Surface* screen;
+  SDL_Texture *sputm_texture;
+  SDL_Window *sputm_window;
+  SDL_Renderer *sputm_renderer;
 } scvm_backend_sdl_t;
 
 struct signal_slot {
@@ -1021,8 +1039,18 @@ struct signal_slot {
   sig_t handler;
 };
 
+static int sputm_setup_video(scvm_backend_sdl_t* be, unsigned width,
+                               unsigned height, unsigned bpp, unsigned scale){
+	be->width = width;
+	be->height = height;
+	be->bpp = bpp;
+	be->scale = scale;
+	return 1;
+}
+
+
 static int sdl_scvm_init_video(scvm_backend_sdl_t* be, unsigned width,
-                               unsigned height, unsigned bpp) {
+                               unsigned height, unsigned bpp, unsigned scale) {
   if(!be->inited_video) {
     struct signal_slot signals[] = {
 #ifdef SIGINT
@@ -1038,7 +1066,7 @@ static int sdl_scvm_init_video(scvm_backend_sdl_t* be, unsigned width,
     int i;
 
     for (i = 0; i < sizeof(signals) / sizeof(*signals); i++) {
-      printf("Save signal %d\n", signals[i].signum);
+      scc_log(LOG_MSG,"Save signal %d\n", signals[i].signum);
       signals[i].handler = signal(signals[i].signum, SIG_DFL);
     }
 
@@ -1050,41 +1078,170 @@ static int sdl_scvm_init_video(scvm_backend_sdl_t* be, unsigned width,
     for (i = 0; i < sizeof(signals) / sizeof(*signals); i++)
        signal(signals[i].signum, signals[i].handler);
 
-    // Lame, but this must be called after initing the video
-    SDL_EnableUNICODE(1);
     be->inited_video = 1;
   }
-  if(!(be->screen =
-       SDL_SetVideoMode(width,height,bpp,SDL_HWPALETTE))) {
-    scc_log(LOG_ERR,"Failed to create SDL screen.\n");
-    return 0;
-  }
-  return 1;
+
+	/* This function parameters can override setup values */
+	if (width != 0)
+		be->width = width;
+	if (height !=0 )
+		be->height = height;	
+	if (bpp != 0)
+		be->bpp = bpp;
+	if(scale != 0)
+		be->scale = scale;
+  
+  /* SDL2 upport */
+  /* Creating window and associated renderer + surface */
+	be->sputm_window = SDL_CreateWindow( "sputm", 0, 0,
+										be->scale*be->width, be->scale*be->height,
+										SDL_WINDOW_SHOWN);
+	if(!(be->sputm_window)) {
+		scc_log(LOG_ERR,"Failed to create SDL window");
+		return 0;
+	}
+	be->sputm_renderer = SDL_CreateRenderer(be->sputm_window, -1,
+										SDL_RENDERER_ACCELERATED |
+										SDL_RENDERER_PRESENTVSYNC);
+	if(!(be->sputm_renderer)) {
+		scc_log(LOG_ERR,"Failed to create SDL renderer");
+		return 0;
+	}
+
+	/* Create a canvas of indexed colours (palette)
+	 * This is the "native" renderer inside SPUTM and most likely will need to
+	 * be converted to RGB
+	 */
+	be->screen = SDL_CreateRGBSurfaceWithFormat(0, 
+												be->width, be->height,
+												8, SDL_PIXELFORMAT_INDEX8);
+
+	if (!(be->screen)){
+		scc_log(LOG_ERR,"Failed to create SDL screen.\n");
+		return 0;
+	}
+
+	be->sputm_texture = SDL_CreateTextureFromSurface(be->sputm_renderer, be->screen);
+	if (!(be->sputm_texture)){
+		scc_log(LOG_ERR,"Failed to create SDL_Texture.\n");
+		return 0;
+	}
+
+
+	int supported_index8 =0, supported_RGB = 0;
+	SDL_RendererInfo info ={};
+	if (SDL_GetRendererInfo(be->sputm_renderer, &info) == 0) {
+		/* Spit out some info */
+		scc_log(LOG_MSG, "*** SDL Renderer Info     ***\n"
+						"Name =\t\t%s\n"
+						"Max width =\t%d\n"
+						"Max height =\t%d\n"
+						"Supported pixel formats:\n",
+						info.name,
+						info.max_texture_width,
+						info.max_texture_height);
+		for(int i = 0; i < info.num_texture_formats; ++i) {
+			scc_log(LOG_MSG,"\t[%02d] %s\n",
+							i,
+							SDL_GetPixelFormatName(info.texture_formats[i]));
+			if(info.texture_formats[i] == SDL_PIXELFORMAT_INDEX8) {
+				supported_index8 = 1;
+				break;
+			}
+			if(info.texture_formats[i] == SDL_PIXELFORMAT_RGB888) {
+				supported_RGB = 1;
+				break;
+			}			
+		}
+
+
+		
+		scc_log(LOG_MSG,"SDL Renderer supports palette?\t%s\n",
+						supported_index8 ? "YES" : "NO");
+		scc_log(LOG_MSG,"SDL Renderer supports RGB?\t%s\n",
+						supported_RGB ? "YES" : "NO");
+	}
+ 
+ 	SDL_Surface *aux = SDL_GetWindowSurface(be->sputm_window);
+ 
+	/* After querying the device possibilities, 
+	   now we must choose the best device pixelformat */
+	if (supported_index8)
+		be->device_pixelformat = SDL_PIXELFORMAT_INDEX8;
+	else if (supported_RGB)
+		be->device_pixelformat = SDL_PIXELFORMAT_RGB888;
+	else {
+		scc_log(LOG_ERR, "The pixel format had to be forced to =\t%s\n",
+				SDL_GetPixelFormatName(aux->format->format));
+		be->device_pixelformat = aux->format->format;				
+	}
+
+	scc_log(LOG_MSG,"Device pixel format selected = \t%s\n",
+						SDL_GetPixelFormatName(be->device_pixelformat));
+  
+	/* Dump some info */
+	int w,h;
+	SDL_GetWindowSize(be->sputm_window, &w, &h);
+	scc_log(LOG_MSG, "Window size = %d x %d\n", w, h);
+	scc_log(LOG_MSG, "Scale =\t%d\n", be->scale);
+	scc_log(LOG_MSG, "*** SDL Renderer Info END ***\n\n");
+	return 1;
 }
 
 static void sdl_scvm_uninit_video(scvm_backend_sdl_t* be) {
-  if(be->inited_video) {
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
-    be->inited_video = 0;
-  }
+	if(be->inited_video) {
+		/* Free all SDL items allocated */
+		SDL_FreeSurface (be->screen);
+		SDL_DestroyTexture (be->sputm_texture);
+		SDL_DestroyRenderer (be->sputm_renderer);
+		SDL_DestroyWindow (be->sputm_window);
+
+		SDL_QuitSubSystem(SDL_INIT_VIDEO);
+		be->inited_video = 0;
+	}
 }
 
 
 static void sdl_scvm_update_palette(scvm_backend_sdl_t* be, scvm_color_t* pal) {
-  SDL_Color colors[256];
-  int i;
-  for(i = 0 ; i < 256 ; i++) {
-    colors[i].r = pal[i].r;
-    colors[i].g = pal[i].g;
-    colors[i].b = pal[i].b;
-  }
-  SDL_SetPalette(be->screen, SDL_LOGPAL|SDL_PHYSPAL, colors, 0, 256);
+	SDL_Color colors[256];
+	int i;
+  
+	for(i = 0 ; i < 256 ; i++) {
+	colors[i].r = pal[i].r;
+	colors[i].g = pal[i].g;
+	colors[i].b = pal[i].b;
+	}
+	i = SDL_SetPaletteColors( be->screen->format->palette, colors, 0, 256);
+	char errstr[256];
+	if (i<0) {
+		scc_log(LOG_ERR,"SDL_SetPaletteColors failed\n");
+		SDL_strlcpy(errstr, SDL_GetError(), 256);
+		scc_log(LOG_ERR,"->%s\n", errstr);
+		return;
+	}
 }
 
 void sdl_scvm_draw(scvm_backend_sdl_t* be, scvm_t* vm, scvm_view_t* view) {
-  if(SDL_MUSTLOCK(be->screen)) SDL_LockSurface(be->screen);
-  scvm_view_draw(vm,vm->view,be->screen->pixels,be->screen->pitch,
-                 be->screen->w,be->screen->h);
+	SDL_Surface *sputm_screen = NULL;
+	
+	if(SDL_MUSTLOCK(be->screen)) SDL_LockSurface(be->screen);
+	scvm_view_draw(vm,vm->view,be->screen->pixels,be->screen->pitch,
+				 be->screen->w,be->screen->h);
+
+	/* SDL2 up-port */
+	if (be->device_pixelformat != SDL_PIXELFORMAT_INDEX8)
+		sputm_screen = SDL_ConvertSurfaceFormat(be->screen,
+												be->device_pixelformat,0);
+	SDL_UpdateTexture(	be->sputm_texture, NULL,
+						sputm_screen->pixels, sputm_screen->pitch);
+
+	SDL_RenderClear(be->sputm_renderer);
+	SDL_RenderCopy(be->sputm_renderer, be->sputm_texture, NULL, NULL);
+	SDL_RenderPresent(be->sputm_renderer);
+
+	/* Free formatted surface */
+	SDL_FreeSurface (sputm_screen);
+				 
   if(SDL_MUSTLOCK(be->screen)) SDL_UnlockSurface(be->screen);
 }
 
@@ -1093,7 +1250,8 @@ static void sdl_scvm_sleep(scvm_backend_sdl_t* be, unsigned delay) {
 }
 
 static void sdl_scvm_flip(scvm_backend_sdl_t* be) {
-  SDL_Flip(be->screen);
+//  SDL_Flip(be->screen);
+	SDL_RenderPresent(be->sputm_renderer);
 }
 
 static unsigned sdl_scvm_get_time(scvm_backend_sdl_t* be) {
@@ -1111,21 +1269,20 @@ static void sdl_scvm_check_events(scvm_backend_sdl_t* be, scvm_t* vm) {
       scvm_release_button(vm,ev.button.button);
       break;
     case SDL_MOUSEMOTION:
-      scvm_set_mouse_position(vm,ev.motion.x*
-                              vm->view->screen_width/be->screen->w,
-                              ev.motion.y*
-                              vm->view->screen_height/be->screen->h);
+      scvm_set_mouse_position(vm,
+								ev.motion.x*vm->view->screen_width
+								/(be->screen->w*be->scale),
+								ev.motion.y*vm->view->screen_height
+								/(be->screen->h*be->scale));
       break;
     case SDL_KEYDOWN:
-      if(!ev.key.keysym.unicode ||
-         ev.key.keysym.unicode > 255) break;
-      scvm_press_key(vm,ev.key.keysym.unicode);
+      if(!ev.key.keysym.sym) break;		//Probably this makes no sense SDL2 as internally is filtering the keyboard
+      scvm_press_key(vm,ev.key.keysym.sym);
       break;
 
-    case SDL_KEYUP:
-      if(!ev.key.keysym.unicode ||
-         ev.key.keysym.unicode > 255) break;
-      scvm_release_key(vm,ev.key.keysym.unicode);
+    case SDL_KEYUP:	
+      if(!ev.key.keysym.sym) break;	//Probably this makes no sense SDL2
+      scvm_release_key(vm,ev.key.keysym.sym);
       break;
     }
   }
@@ -1141,6 +1298,7 @@ static int sdl_backend_init(scvm_backend_t* be) {
   be->uninit = sdl_backend_uninit;
   be->get_time = sdl_scvm_get_time;
   be->update_palette = sdl_scvm_update_palette;
+  be->setup_video =sputm_setup_video;
   be->init_video = sdl_scvm_init_video;
   be->draw = sdl_scvm_draw;
   be->sleep = sdl_scvm_sleep;
@@ -1152,6 +1310,7 @@ static int sdl_backend_init(scvm_backend_t* be) {
     scc_log(LOG_ERR,"SDL init failed.\n");
     return 0;
   }
+
   return 1;
 }
 
@@ -1159,36 +1318,44 @@ static char* basedir = NULL;
 static int file_key = 0;
 static int boot_param = 0;
 static int run_debugger = 0;
+static int scalex2 = 0;
 
 static scc_param_t scc_parse_params[] = {
-  { "dir", SCC_PARAM_STR, 0, 0, &basedir },
-  { "key", SCC_PARAM_INT, 0, 0xFF, &file_key },
-  { "boot", SCC_PARAM_INT, 0, 0xFFFF, &boot_param },
-  { "dbg", SCC_PARAM_FLAG, 0, 1, &run_debugger },
-  { "help", SCC_PARAM_HELP, 0, 0, &scvm_help },
-  { NULL, 0, 0, 0, NULL }
+	{ "dir", SCC_PARAM_STR, 0, 0, &basedir },
+	{ "key", SCC_PARAM_INT, 0, 0xFF, &file_key },
+	{ "boot", SCC_PARAM_INT, 0, 0xFFFF, &boot_param },
+	{ "dbg", SCC_PARAM_FLAG, 0, 1, &run_debugger },
+	{ "scalex2", SCC_PARAM_FLAG, 0, 1, &scalex2 },
+	{ "help", SCC_PARAM_HELP, 0, 0, &scvm_help },
+	{ NULL, 0, 0, 0, NULL }
 };
 
 
 int main(int argc,char** argv) {
-  scvm_t* vm;
-  scc_cl_arg_t* files;
-  scvm_backend_t backend = { sdl_backend_init };
+	scvm_t* vm;
+	scc_cl_arg_t* files;
+	scvm_backend_t backend = { sdl_backend_init };
+	int scale;
 
-  files = scc_param_parse_argv(scc_parse_params,argc-1,&argv[1]);
-  if(!files) scc_print_help(&scvm_help,1);
+	files = scc_param_parse_argv(scc_parse_params,argc-1,&argv[1]);
+	if(!files) scc_print_help(&scvm_help,1);
 
-  vm = scvm_new(&backend,basedir,files->val,file_key,boot_param);
+	scale = scalex2? 2 : 1;
 
-  if(!vm) {
-    scc_log(LOG_ERR,"Failed to create VM.\n");
-    return 1;
-  }
-  scc_log(LOG_MSG,"VM created.\n");
+	/* 	Note that the default screen size is set to VGA
+		and must match the resources */
+	vm = scvm_new(&backend,basedir,files->val,file_key,boot_param,
+				640, 480, 8, scale);
 
-  if(run_debugger)
-    scvm_debugger(vm);
-  else
-    scvm_run(vm);
-  return 0;
+	if(!vm) {
+		scc_log(LOG_ERR,"Failed to create VM.\n");
+		return 1;
+	}
+	scc_log(LOG_MSG,"VM created.\n");
+
+	if(run_debugger)
+		scvm_debugger(vm);
+	else
+		scvm_run(vm);
+	return 0;
 }

@@ -43,7 +43,6 @@
 #include "scvm_thread.h"
 #include "scvm.h"
 
-
 void scvm_actor_init(scvm_actor_t* a) {
     
     a->width = 24;

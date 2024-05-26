@@ -50,6 +50,9 @@ static int scvm_op_dummy_vv(scvm_t* vm, scvm_thread_t* thread);
 
 static int scvm_op_dummy_s(scvm_t* vm, scvm_thread_t* thread);
 
+/* Easily change the verbosity of each sputm opbyte */
+#define LOG_SPUTM_OP LOG_DBG1
+
 // Basic stack ops
 
 int scvm_push(scvm_t* vm,int val) {
@@ -57,7 +60,7 @@ int scvm_push(scvm_t* vm,int val) {
     scc_log(LOG_ERR,"Stack overflow!\n");
     return SCVM_ERR_STACK_OVERFLOW;
   }
-  scc_log(LOG_MSG,"Push %d\n",val);
+  scc_log(LOG_SPUTM_OP,"Push %d\n",val);
   vm->stack[vm->stack_ptr] = val;
   vm->stack_ptr++;
   return 0;
@@ -69,7 +72,7 @@ int scvm_pop(scvm_t* vm,unsigned* val) {
     return SCVM_ERR_STACK_UNDERFLOW;
   }
   vm->stack_ptr--;
-  scc_log(LOG_MSG,"Pop %d\n",vm->stack[vm->stack_ptr]);
+  scc_log(LOG_SPUTM_OP,"Pop %d\n",vm->stack[vm->stack_ptr]);
   if(val) *val = vm->stack[vm->stack_ptr];
   return 0;
 }
@@ -105,12 +108,12 @@ int scvm_thread_read_var(scvm_t* vm, scvm_thread_t* thread,
     addr &= 0x7FFF;
     if(addr >= vm->num_bitvar) return SCVM_ERR_BAD_ADDR;
     *val = (vm->bitvar[addr>>3]>>(addr&7))&1;
-    scc_log(LOG_MSG,"Read bit var %d: %d\n",addr,*val);
+    scc_log(LOG_SPUTM_OP,"Read bit var %d: %d\n",addr,*val);
   } else if(addr & 0x4000) { // thread local variable
     addr &= 0x3FFF;
     if(!thread || addr >= thread->num_var) return SCVM_ERR_BAD_ADDR;
     *val = thread->var[addr];
-    scc_log(LOG_MSG,"Read local var %d: %d\n",addr,*val);
+    scc_log(LOG_SPUTM_OP,"Read local var %d: %d\n",addr,*val);
   } else { // global variable
     addr &= 0x3FFF;
     if(addr >= vm->num_var) return SCVM_ERR_BAD_ADDR;
@@ -118,7 +121,7 @@ int scvm_thread_read_var(scvm_t* vm, scvm_thread_t* thread,
       *val = vm->get_var[addr](vm,addr);
     else
       *val = vm->var_mem[addr];
-    scc_log(LOG_MSG,"Read global var %d: %d\n",addr,*val);
+    scc_log(LOG_SPUTM_OP,"Read global var %d: %d\n",addr,*val);
   }
   return 0;
 }
@@ -131,12 +134,12 @@ int scvm_thread_write_var(scvm_t* vm, scvm_thread_t* thread,
     if(addr >= vm->num_bitvar) return SCVM_ERR_BAD_ADDR;
     vm->bitvar[addr>>3] &= ~(1<<(addr&7));
     vm->bitvar[addr>>3] |= (val&1)<<(addr&7);
-    scc_log(LOG_MSG,"Write bit var %d: %d\n",addr,val);
+    scc_log(LOG_SPUTM_OP,"Write bit var %d: %d\n",addr,val);
   } else if(addr & 0x4000) { // thread local variable
     addr &= 0x3FFF;
     if(!thread || addr >= thread->num_var) return SCVM_ERR_BAD_ADDR;
     thread->var[addr] = val;
-    scc_log(LOG_MSG,"Write local var %d: %d\n",addr,val);
+    scc_log(LOG_SPUTM_OP,"Write local var %d: %d\n",addr,val);
   } else { // global variable
     addr &= 0x3FFF;
     if(addr >= vm->num_var) return SCVM_ERR_BAD_ADDR;
@@ -144,7 +147,7 @@ int scvm_thread_write_var(scvm_t* vm, scvm_thread_t* thread,
       vm->set_var[addr](vm,addr,val);
     else
       vm->var_mem[addr] = val;
-    scc_log(LOG_MSG,"Write global var %d: %d\n",addr,val);
+    scc_log(LOG_SPUTM_OP,"Write global var %d: %d\n",addr,val);
   }
   return 0;
 }
@@ -193,13 +196,13 @@ int scvm_read_array(scvm_t* vm, unsigned addr, unsigned x, unsigned y, int* val)
   default:
     return SCVM_ERR_ARRAY_TYPE;
   }
-  scc_log(LOG_MSG,"Read array %d[%d][%d]: %d\n",addr,x,y,*val);
+  scc_log(LOG_SPUTM_OP,"Read array %d[%d][%d]: %d\n",addr,x,y,*val);
   return 0;
 }
 
 int scvm_write_array(scvm_t* vm, unsigned addr, unsigned x, unsigned y, int val) {
   unsigned idx;
-  scc_log(LOG_MSG,"Write array %d[%d][%d]: %d\n",addr,x,y,val);
+  scc_log(LOG_SPUTM_OP,"Write array %d[%d][%d]: %d\n",addr,x,y,val);
   if(addr >= vm->num_array) return SCVM_ERR_BAD_ADDR;
   idx = x+y*vm->array[addr].line_size;
   if(idx >= vm->array[addr].size)

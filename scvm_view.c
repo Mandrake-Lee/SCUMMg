@@ -44,6 +44,7 @@
 #include "scvm_thread.h"
 #include "scvm.h"
 
+#define LOG_SPUTM_VIEW LOG_DBG1
 
 static void scale_copy(uint8_t* dst, int dst_stride,
                        unsigned clip_width, unsigned clip_height,
@@ -252,7 +253,7 @@ int scvm_view_draw(scvm_t* vm, scvm_view_t* view,
       }
     }
 
-    scc_log(LOG_MSG,"Draw actor %d at %dx%d (zplane: %d)\n",a,
+    scc_log(LOG_SPUTM_VIEW,"Draw actor %d at %dx%d (zplane: %d)\n",a,
             actor[a]->x,actor[a]->y,
             zplane ? vm->room->box[actor[a]->box].mask : -1);
 

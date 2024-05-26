@@ -42,6 +42,8 @@
 #include "scvm_thread.h"
 #include "scvm.h"
 
+#define LOG_SPUTM_THREAD LOG_DBG1
+
 char* scvm_thread_state_name(unsigned state) {
   static char* names[] = {
     "stopped", "running", "pended", "delayed", "frozen"
@@ -245,7 +247,7 @@ int scvm_thread_do_op(scvm_t* vm, scvm_thread_t* thread, scvm_op_t* optable) {
   
   if((r=scvm_thread_r8(thread,&op))) return r;
   
-  scc_log(LOG_MSG,"Do op %s (0x%x)\n",optable[op].name,op);
+  scc_log(LOG_SPUTM_THREAD,"Do op %s (0x%x)\n",optable[op].name,op);
 
   if(!optable[op].op) {
     scc_log(LOG_WARN,"Op %s (0x%x) is missing\n",optable[op].name,op);

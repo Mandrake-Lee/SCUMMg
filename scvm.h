@@ -480,8 +480,10 @@ typedef struct scvm_backend {
     int (*random)(struct scvm_backend_priv* be,int min,int max);
     void (*sleep)(struct scvm_backend_priv* be, unsigned time);
     // rendering
+    int (*setup_video)(struct scvm_backend_priv* be, unsigned width,
+                      unsigned height, unsigned bpp, unsigned scale);	
     int (*init_video)(struct scvm_backend_priv* be, unsigned width,
-                      unsigned height, unsigned bpp);
+                      unsigned height, unsigned bpp, unsigned scale);
     void (*update_palette)(struct scvm_backend_priv* be, scvm_color_t* pal);
     void (*draw)(struct scvm_backend_priv* be, scvm_t* vm, scvm_view_t* view);
     void (*flip)(struct scvm_backend_priv* be);
@@ -683,7 +685,7 @@ unsigned scvm_get_time(scvm_t* vm);
 
 int scvm_random(scvm_t* vm, int min, int max);
 
-int scvm_init_video(scvm_t* vm, unsigned w, unsigned h, unsigned bpp);
+int scvm_init_video(scvm_t* vm, unsigned w, unsigned h, unsigned bpp, unsigned scale);
 
 void scvm_update_palette(scvm_t* vm, scvm_color_t* pal);
 

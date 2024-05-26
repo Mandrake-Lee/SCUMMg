@@ -36,6 +36,9 @@
       <param name="dbg">
         Run in debugger mode.
       </param>
+      <param name="scalex2">
+        Scale by x2 the window on the device.
+      </param>	  
     </param-group>
     <file name="basename" required="true"/>
   </command>
