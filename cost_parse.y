@@ -51,7 +51,7 @@ typedef union cost_bison_val cost_bison_val_t;
 %{
 
 #include "cost_parse.h"
-#include "cost_globals.h"
+//#include "cost_globals.h"
 
 #ifndef IS_MINGW
 #include <glob.h>

@@ -22,9 +22,63 @@
  
  #include <stdlib.h>
  #include "cost_parse.h"
- #include "cost_globals.h"
+ //#include "cost_globals.h"
  #include "scc_img.h"
-  
+ #include "cost_help.h"
+
+/* Initialization of global variables */
+cost_pic_t* cur_pic = NULL;
+cost_pic_t* pic_list = NULL;
+cost_limb_t limbs[COST_MAX_LIMBS];
+cost_limb_t* cur_limb = NULL;
+cost_anim_t anims[COST_MAX_ANIMS];
+cost_anim_t* cur_anim = NULL;
+cost_anim_dir_t* cur_dir = NULL;
+unsigned pal_size = 0;
+uint8_t pal[COST_MAX_PALETTE_SIZE];
+uint8_t palRGB[COST_MAX_PALETTE_SIZE*3];
+bool hasRGB = false;
+// Default to no flip
+unsigned cost_flags = 0x80;
+char* img_path;
+scc_fd_t* out_fd = NULL;
+
+char* cost_output = NULL;
+char* img_path = NULL;
+// Output a AKOS instead of COST
+int akos = 0;
+// Ouput a header
+char* symbol_prefix = NULL;
+char* header_name = NULL;
+
+struct dir_map dir_map[] = {
+	{ "W",   0 },
+	{ "E",   1 },
+	{ "S",   2 },
+	{ "N",   3 },
+	{ NULL,  0 }
+};
+
+struct anim_map anim_map[] = {
+	{ "init",       1 },
+	{ "walk",       2 },
+	{ "stand",      3 },
+	{ "talkStart",  4 },
+	{ "talkStop",   5 },
+	{ NULL, 0 }
+};
+
+
+scc_param_t scc_parse_params[] = {
+	{ "o", SCC_PARAM_STR, 0, 0, &cost_output },
+	{ "I", SCC_PARAM_STR, 0, 0, &img_path },
+	{ "akos", SCC_PARAM_FLAG, 0, 1, &akos },
+	{ "prefix", SCC_PARAM_STR, 0, 0, &symbol_prefix },
+	{ "header", SCC_PARAM_STR, 0, 0, &header_name },
+	{ "help", SCC_PARAM_HELP, 0, 0, &cost_help },
+	{ NULL, 0, 0, 0, NULL }
+};
+
 // load an image and encode it with the strange vertical RLE
 int cost_pic_load(cost_pic_t* pic,char* file) {  
   scc_img_t* img = scc_img_open(file);
@@ -42,6 +96,12 @@ int cost_pic_load(cost_pic_t* pic,char* file) {
   // alloc enouth mem for the worst case
   pic->data = malloc(img->w*img->h);
 
+	//This assumes all pics have the same RGB palette in same order... MAN
+	if(!hasRGB)
+	{
+		memcpy(palRGB, img->pal, 3*img->ncol);
+		hasRGB = true;
+	}
   // set the params
   switch(pal_size) {
   case 16:
@@ -187,7 +247,7 @@ static int cost_get_pic_limb_id(int limb_n, cost_pic_t* pic) {
   return n;
 }
 
-static int cost_create_limbs(void) {
+int cost_create_limbs(void) {
   int a,d,l;
   for(a = 0 ; a < COST_MAX_ANIMS ; a++) {
     if(!anims[a].name) continue;
@@ -329,6 +389,7 @@ int cost_write(scc_fd_t* fd) {
 int akos_write(scc_fd_t* fd) {
   int akhd_size = 8 + 2 + 1 + 1 + 2 + 2 + 2;
   int akpl_size = 8 + pal_size;
+  int rgbs_size = 8 + pal_size*3;
   int aksq_size = 8;
   int akch_size = 8;
   int akof_size = 8;
@@ -400,7 +461,7 @@ int akos_write(scc_fd_t* fd) {
     akcd_size += pic->data_size;
   }
 
-  akos_size = 8 + akhd_size + akpl_size + aksq_size +
+  akos_size = 8 + akhd_size + akpl_size + rgbs_size + aksq_size +
     akch_size + akof_size + akci_size + akcd_size;
 
   scc_fd_w32(fd,MKID('A','K','O','S'));
@@ -426,6 +487,12 @@ int akos_write(scc_fd_t* fd) {
   scc_fd_w32(fd,MKID('A','K','P','L'));
   scc_fd_w32be(fd,akpl_size);
   scc_fd_write(fd,pal,pal_size);
+
+  // Write the palette RGB
+  scc_fd_w32(fd,MKID('R','G','B','S'));
+  scc_fd_w32be(fd, rgbs_size);
+  scc_fd_write(fd, palRGB, 3*pal_size);
+
 
   // Write the commands
   scc_fd_w32(fd,MKID('A','K','S','Q'));

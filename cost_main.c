@@ -27,7 +27,7 @@
 #include "cost_parse.h"
 #include "cost_lexer.h"
 #include "scc_param.h"
-#include "cost_globals.h"
+//#include "cost_globals.h"
 #include "cost_help.h"
 
 

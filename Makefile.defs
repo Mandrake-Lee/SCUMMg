@@ -50,7 +50,7 @@ UTILS=                          \
 	imgremap                \
 	raw2voc                 \
 	palcat                  \
-	scummvm					\
+#	scummvm					\
 	
 TESTS=                          \
 	road                    \
@@ -152,9 +152,9 @@ cost_SRCS=                      \
 	scc_img.c               \
 	scc_util.c              \
 	cost_lexer.c            \
-	cost_globals.c			\
 	cost_parse.c			\
 	cost_main.c				\
+#	cost_globals.c			\
 
 char_SRCS=                      \
 	char.c                  \
@@ -268,7 +268,7 @@ palcat_SRCS=                    \
 	scc_util.c              \
 
 scummvm_SRCS=				\
-	scummvm_script			\
+#	scummvm_script			\
 
 scummvm_LIBS=				\
 	SDL						\
@@ -306,6 +306,6 @@ TEMP_DIR := temp
 SCUMMVM_ZIPBALL := scummvm-master.zip
 SCUMMG_PATCH := scummvm-2.9.0.patch
 
-scummvm_script:
-	@sh $(SRCDIR)/scummvm_down_patch_compile.sh $(TEMP_DIR)	$(SCUMMVM_URL) $(SCUMMVM_ZIPBALL) $(SRCDIR) $(SCUMMG_PATCH)
+#scummvm_script:
+#	@sh $(SRCDIR)/scummvm_down_patch_compile.sh $(TEMP_DIR)	$(SCUMMVM_URL) $(SCUMMVM_ZIPBALL) $(SRCDIR) $(SCUMMG_PATCH)
 

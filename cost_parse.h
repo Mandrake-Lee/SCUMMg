@@ -27,7 +27,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "scc_fd.h"
+#include "scc_param.h"
 #include "cost_lexer.h"
 
 #define COST_ABORT(at,msg...)  { \
@@ -65,16 +67,15 @@ struct anim_map;
 
 /* Prototype declaration of functions */
 int cost_pic_load(cost_pic_t* pic,char* file);
-int cost_get_size(int *na,unsigned* coff,unsigned* aoff,unsigned* loff);
-static int cost_get_pic_limb_id(int limb_n, cost_pic_t* pic);
-static int cost_create_limbs(void);
+//int cost_get_size(int *na,unsigned* coff,unsigned* aoff,unsigned* loff);
+//static int cost_get_pic_limb_id(int limb_n, cost_pic_t* pic);
+int cost_create_limbs(void);
 int cost_write(scc_fd_t* fd);
 int akos_write(scc_fd_t* fd);
 int header_write(scc_fd_t* fd,char *prefix);
 int cost_parser_error(scc_lex_t *cost_lex, YYLTYPE *llocp, const char *s);
 cost_pic_t* find_pic(char* name);
 cost_parser_t* cost_parser_new(void);
-
 
 /* Complete declaration of struct's & typedef's */
 typedef union cost_bison_val {
@@ -169,4 +170,33 @@ typedef struct cost_parser {
 	char* img_path;
 } cost_parser_t;
 
+/* global variables forward declaration*/
+extern cost_pic_t* cur_pic;
+extern cost_pic_t* pic_list;
+extern cost_limb_t limbs[];
+extern cost_limb_t* cur_limb;
+extern cost_anim_t anims[];
+extern cost_anim_t* cur_anim;
+extern cost_anim_dir_t* cur_dir;
+extern unsigned pal_size;
+extern uint8_t pal[];
+extern uint8_t palRGB[];
+extern bool hasRGB;
+// Default to no flip
+extern unsigned cost_flags;
+extern char* img_path;
+extern scc_fd_t* out_fd;
+
+extern char* cost_output;
+extern char* img_path;
+// Output a AKOS instead of COST
+extern int akos;
+// Ouput a header
+extern char* symbol_prefix;
+extern char* header_name;
+//
+extern struct dir_map dir_map[];
+extern struct anim_map anim_map[];
+
+extern scc_param_t scc_parse_params[];
 #endif
