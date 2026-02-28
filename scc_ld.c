@@ -1496,7 +1496,10 @@ int main(int argc,char** argv) {
     char name[255];
     scc_fd_t* fd;
 
-    sprintf(name,"%s.001",out_file);
+	if (scc_ns->target->version == 7)
+		sprintf(name,"%s.la1",out_file);		
+	else
+		sprintf(name,"%s.001",out_file);
 
     fd = new_scc_fd(name,O_WRONLY|O_CREAT|O_TRUNC,enckey);
     scc_log(LOG_V,"Outputting data file %s\n",name);
@@ -1511,7 +1514,11 @@ int main(int argc,char** argv) {
     }
     scc_fd_close(fd);
 
-    sprintf(name,"%s.000",out_file);
+	if (scc_ns->target->version == 7)
+		sprintf(name,"%s.la0",out_file);		
+	else
+		sprintf(name,"%s.000",out_file);
+	
     scc_log(LOG_V,"Outputting index file %s\n",name);
     fd = new_scc_fd(name,O_WRONLY|O_CREAT|O_TRUNC,enckey);
     if(!fd) {
