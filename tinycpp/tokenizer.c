@@ -386,6 +386,7 @@ int tokenizer_read_until(struct tokenizer *t, const char* marker, int stop_at_nl
 		tokenizer_ungetc(t, marker[--i]);
 	return 1;
 }
+
 static int ignore_until(struct tokenizer *t, const char* marker, int col_advance)
 {
 	t->column += col_advance;
@@ -427,6 +428,7 @@ int tokenizer_next(struct tokenizer *t, struct token* out) {
 		}
 		if(sequence_follows(t, c, t->marker[MT_SINGLELINE_COMMENT_START])) {
 			ignore_until(t, "\n", strlen(t->marker[MT_SINGLELINE_COMMENT_START]));
+			tokenizer_ungetc(t, '\n');	//For SCUMM, line comments must keep newline.
 			continue;
 		}
 		if(is_sep(c)) {
