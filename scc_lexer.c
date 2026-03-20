@@ -29,43 +29,47 @@
 // List of all the keywords
 // it must be kept sorted bcs a binary search is used on it
 static scc_keyword_t scc_keywords[] = {
-    { "actor",      ACTOR,     -1 },
-    { "bit",        TYPE,      SCC_VAR_BIT },
-    { "break",      BRANCH,    SCC_BRANCH_BREAK },
-    { "byte",       TYPE,      SCC_VAR_BYTE },
-    { "case",       CASE,      -1 },
-    { "char",       TYPE,      SCC_VAR_CHAR },
-    { "chset",      RESTYPE,   SCC_RES_CHSET },
-    { "class",      CLASS,     -1 },
-    { "continue",   BRANCH,    SCC_BRANCH_CONTINUE },
-    { "cost",       RESTYPE,   SCC_RES_COST },
-    { "cutscene",   CUTSCENE,  -1 },
-    { "cycle",      CYCL,      -1 },
-    { "default",    DEFAULT,   -1 },
-    { "do",         DO,        -1 },
-    { "else",       ELSE,      -1 },
-    { "for",        FOR,       -1 },
-    { "global",     SCRTYPE,   SCC_RES_SCR },
-    { "if",         IF,        0 },
-    { "int",        TYPE,      SCC_VAR_WORD },
-    { "is",         IS,        -1 },
-    { "local",      SCRTYPE,   SCC_RES_LSCR },
-    { "nibble",     TYPE,      SCC_VAR_NIBBLE },
-    { "object",     OBJECT,    -1 },
-    { "override",   OVERRIDE,  -1 },
-    { "return",     RETURN,    SCC_BRANCH_RETURN },
-    { "room",       ROOM,      -1 },
-    { "script",     SCRIPT,    -1 },
-    { "sound",      RESTYPE,   SCC_RES_SOUND },
-    { "switch",     SWITCH,    -1 },
-    { "try",        TRY,       -1 },
-    { "unless",     IF,        1 },
-    { "until",      WHILE,     1 },
-    { "verb",       VERB,     -1 },
-    { "voice",      VOICE,     -1 },
-    { "while",      WHILE,     0 },
-    { "word",       TYPE,      SCC_VAR_WORD },
-    { NULL, -1, -1 },
+	{ "actor",      ACTOR,     -1 },				//SCUMM
+	{ "bit",        TYPE,      SCC_VAR_BIT },
+	{ "bit-variable",TYPE,		SCC_VAR_BIT },		//SCUMM
+	{ "break",      BRANCH,    SCC_BRANCH_BREAK },
+	{ "byte",       TYPE,      SCC_VAR_BYTE },
+//	{ "case",       CASE,      -1 },
+	{ "case",       SWITCH,		-1 },	
+	{ "char",       TYPE,      SCC_VAR_CHAR },
+	{ "chset",      RESTYPE,   SCC_RES_CHSET },
+	{ "class",      CLASS,     -1 },
+	{ "continue",   BRANCH,    SCC_BRANCH_CONTINUE },
+	{ "cost",       RESTYPE,   SCC_RES_COST },
+	{ "cutscene",   CUTSCENE,  -1 },
+	{ "cycle",      CYCL,      -1 },
+	{ "default",    DEFAULT,   -1 },
+	{ "do",         DO,        -1 },
+	{ "else",       ELSE,      -1 },
+	{ "for",        FOR,       -1 },
+	{ "global",     SCRTYPE,   SCC_RES_SCR },
+	{ "if",         IF,        0 },
+	{ "int",        TYPE,      SCC_VAR_WORD },
+	{ "is",         IS,        -1 },
+	{ "local",      SCRTYPE,   SCC_RES_LSCR },
+	{ "nibble",     TYPE,      SCC_VAR_NIBBLE },
+	{ "object",     OBJECT,    -1 },
+	{ "of",			CASE,		-1},					//SCUMM
+	{ "override",   OVERRIDE,  -1 },
+	{ "return",     RETURN,    SCC_BRANCH_RETURN },
+	{ "room",       ROOM,      -1 },
+	{ "script",     SCRIPT,    -1 },
+	{ "sound",      RESTYPE,   SCC_RES_SOUND },
+	{ "switch",     SWITCH,    -1 },
+	{ "try",        TRY,       -1 },
+	{ "unless",     IF,        1 },
+	{ "until",      WHILE,     1 },						//SCUMM
+	{ "variable",	TYPE,		SCC_VAR_BYTE },			//SCUMM	
+	{ "verb",       VERB,     -1 },
+	{ "voice",      VOICE,     -1 },
+	{ "while",      WHILE,     0 },
+	{ "word",       TYPE,      SCC_VAR_WORD },
+	{ NULL, -1, -1 },
 };
 
 
@@ -317,18 +321,35 @@ int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
     char* str,*ppd;
     int tpos = 0,pos = 0;
     int define_line = -1, define_col = -1;
+	int newlineCount = 0;
     scc_keyword_t* keyword;
 
     c = scc_lex_at(lex,0);
 
-    // EOF
-    if(!c) return 0;
+    // Experimental code to handle EOF as terminator of statements with no NEWLINE
+	static int counterEOF = 0;
+	if (!c)
+	{
+		if (!counterEOF)
+		{
+			counterEOF++;
+			return NEWLINE;
+		}
+		else
+		{
+			counterEOF = 0;
+			return 0;
+		}
+	}
+//    if(!c) return 0;
 
     //scc_lex_get_line_column(lex,&llocp->first_line,&llocp->first_column);
 
     // a sym, a keyword or an integer
     if(SCC_ISALNUM(c) || c == '_') {
         // read the whole word
+		// It's worth noting that in SCUMM, symbols can have in between '-' or '.'
+		// e.g. boot-script or V.1
         do {
             tpos++;
             c = scc_lex_at(lex,tpos);
@@ -336,7 +357,7 @@ int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
                 if(lex->error) return 0;
                 break;
             }
-        } while(SCC_ISALNUM(c) || c == '_');
+        } while(SCC_ISALNUM(c) || c == '_' || c == '-' || c == '.');
         // Get the string
         str = scc_lex_gets(lex,tpos);
 
@@ -605,14 +626,24 @@ int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
         if(str) free(str);
         return tpos;
 
-    case ' ':
     case '\n':
+		//At least one newline found
+		newlineCount++;
+    case ' ':
     case '\t':
+		//Here we eat-up meaningless separators for the bison
+		//It's worth noting that several newlines found can be summarized in one
+		//for syntax purposes
         do {
             c = scc_lex_at(lex,tpos);
             tpos++;
+			if (c=='\n')
+				newlineCount++;			
         } while (c == ' ' || c == '\n' || c == '\t');
+
         scc_lex_drop(lex,tpos-1);
+		if (newlineCount)
+			return NEWLINE;
         return -1;
             
 

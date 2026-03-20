@@ -30,6 +30,7 @@
 %define api.pure full
 %parse-param {struct scc_parser *v_sccp}
 %lex-param {scc_parser_t *YYLEX_PARAM}
+%define parse.error verbose
 
 %code requires {
 #define YYSTYPE scc_bison_val_t
@@ -62,6 +63,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 }
 
 // Operators, the order is defining the priority.
+
+%token NEWLINE	//Acts as separator
 
 %token AADD
 %token ASUB
@@ -180,7 +183,12 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <integer> scripttype
 
 %type <arg> scriptargs
+%type <arg> scriptargs_explicit
+%type <arg> scriptargs_loose
+%type <arg> scriptargs_all
+%type <arg> symlist_commasep
 %type <sym> roomscrdecl
+%type <sym> globalscrdecl
 %type <sym> roomobjdecl
 %type <sym> cycledecl
 %type <sym> voicedecl
@@ -191,35 +199,68 @@ typedef union scc_bison_val_s scc_bison_val_t;
 
 %%
 
-srcfile: /* empty */
+/*
+srcfile: %empty
 | srcs
 ;
+*/
 
-srcs: src
-| srcs src
+srcfile: %empty
+	| srcfile srcs		//Meaningful blocks are separated with NEWLINE
+;
+
+
+//srcs: src
+srcs: %empty
+| NEWLINE			//Let's consider a block of NEWLINE's
+| src NEWLINE
+//| srcs src
 ;
 
 src: room
-| gdecl
+	| gdecl
+	| globalscript
 ;
 
-gdecl: gvardecl ';'
+//gdecl: gvardecl ';'
+gdecl: gvardecl
 {}
-| gresdecl ';'
+| gresdecl //';'
 {}
 | groomresdecl ';'
 {}
-| groomdecl ';'
+| groomdecl //';'
+| globalscrdecl
+{
+	scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+	scc_ns_pop(sccp->ns);
+}
 ;
 
 gvardecl: TYPE typemod SYM location
 {
-  if($1 == SCC_VAR_BIT && !$2)
-    scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_BVAR,$1,$4);
-  else
-    scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_VAR,$1 | $2,$4);
+	scc_symbol_t* rr;
+	printf("I'm here %s\n", $3);
+	if($1 == SCC_VAR_BIT && !$2)
+		scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_BVAR,$1,$4);
+	else
+	{
+	//	printf("I'm here\n");
+		rr = scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_VAR,$1 | $2,$4);
+		if (!rr)
+			printf("I'm returning NULL for %s \n", $3);
+	}
 
-  $$ = $1;
+	$$ = $1;
+}
+| gvardecl typemod SYM location
+{
+	if($1 == SCC_VAR_BIT && !$2)
+		scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_BVAR,$1,$4);
+	else
+		scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_VAR,$1 | $2,$4);
+
+	$$ = $1;
 }
 | gvardecl ',' typemod SYM location
 {
@@ -276,6 +317,10 @@ globalres: ACTOR
 { 
   $$ = SCC_RES_CLASS;
 }
+| SCRIPT
+{ 
+  $$ = SCC_RES_SCR;
+}
 ;
 
 // cost, sound, chset, object, script, voice, cycl
@@ -308,6 +353,14 @@ roomres: RESTYPE
   $$ = SCC_RES_CYCL;
 }
 ;
+
+/* Before we go farther, we will give some flexilibity to the braces */
+open_block: '{' NEWLINE
+	;
+
+close_block: '}' NEWLINE
+	;
+
 
 // This allow us to have the room declared before we parse the body.
 // At this point the roobj object is created.
@@ -403,6 +456,54 @@ roombodyentry: roomscrdecl '{' scriptbody '}'
 {}
 ;
 
+//globalscript: globalscrdecl '{' scriptbody '}'
+globalscript: globalscrdecl open_block scriptbody close_block
+{
+	if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
+	if($3) {
+	$3->sym = $1;
+	scc_roobj_add_scr(sccp->roobj,$3);
+	}
+
+	scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+	scc_ns_pop(sccp->ns);
+}
+;
+
+//Global script declaration, always out of any room{}
+globalscrdecl: SCRIPT SYM scriptargs_all
+{
+	scc_scr_arg_t* a = $3;
+	scc_symbol_t* s;
+
+	int type = SCC_RES_SCR;
+	int address = -1;
+
+	/*Sanity check for double definition */
+/*
+	s = scc_ns_get_sym(sccp->ns, NULL, $2);
+	if (s && s->type != SCC_RES_LVAR)
+		SCC_ABORT(@3,"Symbol \'%s\' already declared\n",$2);
+*/
+
+	s = scc_ns_decl(sccp->ns,NULL,$2,type,0,address);  
+	if(!s) SCC_ABORT(@3,"Failed to declare global script \'%s\'.\n",$2);
+
+	scc_ns_push(sccp->ns,s);	//This pushes the scope of the variables
+
+	// declare the arguments
+	sccp->local_vars = 0;
+	while(a)
+	{
+		scc_ns_decl(sccp->ns,NULL,a->sym,SCC_RES_LVAR,a->type,sccp->local_vars);
+		sccp->local_vars++;
+		a = a->next;
+	}
+	$$ = s;
+}
+;
+
+
 roomscrdecl: scripttype SCRIPT SYM  '(' scriptargs ')' location
 {
   scc_scr_arg_t* a = $5;
@@ -425,6 +526,7 @@ roomscrdecl: scripttype SCRIPT SYM  '(' scriptargs ')' location
     sccp->local_vars++;
     a = a->next;
   }
+  
   $$ = s;
 }
 ;
@@ -878,6 +980,95 @@ scriptargs: /* */
 }
 ;
 
+/* When scriptargs are clearly coded as C e.g. function(arg1, arg2, ...) */
+scriptargs_explicit: '(' ')'
+	{
+		$$=NULL;
+	}
+	| '(' symlist_commasep ')'
+	{
+		$$=$2;
+	}
+	;
+
+/* When scriptargs are loose separated with spaces e.g. arg1 arg2 ... */
+scriptargs_loose: /* empty */
+	{
+		$$=NULL;	/* nothing that follows... no arguments*/
+	}
+	| SYM
+	{
+		$$ = malloc(sizeof(scc_scr_arg_t));
+		$$->next = NULL;
+		$$->type = SCC_RES_LVAR;
+		$$->sym = $1;
+	}
+	| scriptargs_loose SYM
+	{
+		scc_scr_arg_t *i,*a;
+		a = malloc(sizeof(scc_scr_arg_t));
+		a->next = NULL;
+		a->type = SCC_RES_LVAR;
+		a->sym = $2;
+
+		/* Sanity check, we can't duplicate symbols of arguments */
+		i=$1;
+		while(i)
+		{
+			if (!strcmp(a->sym, i->sym))
+				SCC_ABORT(@1, "Illegal duplication of argument \'%s\'\n", a->sym);
+			i = i->next;
+		}
+
+		for(i = $1 ; i->next ; i = i->next);	//Find the end of the list
+		i->next = a;
+		$$ = $1;
+	}
+	;
+
+scriptargs_all: /*empty*/
+	| scriptargs_explicit
+	{
+		$$= $1;
+	}
+	| scriptargs_loose
+	{
+		$$ = $1;
+	}
+	;
+
+symlist_commasep: /* empty */
+	| SYM
+	{
+		$$ = malloc(sizeof(scc_scr_arg_t));
+		$$->next = NULL;
+		$$->type = SCC_RES_LVAR;
+		$$->sym = $1;
+	}
+	| symlist_commasep ',' SYM
+	{
+		scc_scr_arg_t *i,*a;
+		a = malloc(sizeof(scc_scr_arg_t));
+		a->next = NULL;
+		a->type = SCC_RES_LVAR;
+		a->sym = $3;
+
+		/* Sanity check, we can't duplicate symbols of arguments */
+		i=$1;
+		while(i)
+		{
+			if (!strcmp(a->sym, i->sym))
+				SCC_ABORT(@1, "Illegal duplication of argument \'%s\'\n", a->sym);
+			i = i->next;
+		}
+
+		for(i = $1 ; i->next ; i = i->next);	//Find the end of the list
+		i->next = a;
+		$$ = $1;
+	}
+	;
+
+
 location: /* empty */
 {
   $$ = -1;
@@ -911,10 +1102,10 @@ vardecl: /* empty */
 | vardec
 ;
 
-vardec: vdecl ';'
+vardec: vdecl NEWLINE //';'
 {
 }
-| vardec vdecl ';'
+| vardec vdecl NEWLINE //';'
 ;
 
 /// this will only decl local vars
