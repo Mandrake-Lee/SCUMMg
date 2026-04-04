@@ -74,6 +74,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token AOR
 %token INC
 %token DEC
+%token ISOLATED_INC		//MAN
+%token ISOLATED_DEC
 %token PREINC
 %token POSTINC
 %token PREDEC
@@ -109,6 +111,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token <integer> BRANCH RETURN
 
 %token ROOM
+%token ENTER		//enter script in a room
+%token EXIT			//exit script in a room
 %token OBJECT
 %token NS
 %token SCRIPT
@@ -120,6 +124,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %nonassoc <integer> IF
 %nonassoc ELSE
 %nonassoc FOR
+%nonassoc TO
 %nonassoc <integer> WHILE
 %nonassoc DO
 %nonassoc SWITCH
@@ -150,13 +155,17 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <sym> vdecl
 
 %type <st> statement
+%type <st> restricted_statement
 %type <st> statements
 %type <st> opt_statements
 %type <inst> instruct
 %type <inst> ifblock
+%type <integer> for_ops		//Actually returning INC or DEC
 %type <st> caseval
 %type <st> caseblock
 %type <inst> switchblock
+%type <inst> switchblock2
+%type <st> caseheader
 %type <inst> loopblock
 %type <inst> cutsceneblock
 %type <inst> block
@@ -186,6 +195,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <arg> scriptargs_explicit
 %type <arg> scriptargs_loose
 %type <arg> scriptargs_all
+%type <arg> globalscrdecl2
 %type <arg> symlist_commasep
 %type <sym> roomscrdecl
 %type <sym> globalscrdecl
@@ -230,10 +240,81 @@ gdecl: gvardecl
 | groomresdecl ';'
 {}
 | groomdecl //';'
+/*
 | globalscrdecl
 {
 	scc_ns_clear(sccp->ns,SCC_RES_LVAR);
 	scc_ns_pop(sccp->ns);
+}
+*/
+| globalscrdecl2
+{
+	scc_scr_arg_t *argAux, *script = $1;
+	scc_symbol_t *s, *a;
+
+	//First check that script is not already defined
+	s = scc_ns_get_sym(sccp->ns,"-GLOBAL-", script->sym);
+	
+	if (s)
+	{
+		//If this is a declaration, then we're already in double decl error
+		//If this is a definition then it is a must
+		
+		a = s->childs;
+		argAux = script->next;
+		while(argAux && a)
+		{
+			if (strcmp(a->sym, argAux->sym))
+			{
+				SCC_LIST_FREE(script, argAux);
+				SCC_ABORT(@1, "Global script \'%s\' double declaration mismatch arguments",s->sym);
+			}
+			a = a->next;
+			argAux = argAux->next;
+		}
+		
+		SCC_LIST_FREE(script, argAux);
+		SCC_ABORT(@1, "Global script \'%s\' double declaration", s->sym);
+		//At the same room?
+		//Same arguments?
+	}
+	else	//At this branch, we create the global script
+	{
+		scc_symbol_t *roomg;
+
+		s = scc_ns_decl(sccp->ns,"-GLOBAL-",script->sym,SCC_RES_SCR,0,-1);  
+		if(!s)
+			SCC_ABORT(@1,"Failed to declare global script \'%s\'.\n",script->sym);
+
+		roomg = scc_ns_get_sym(sccp->ns, NULL, "-GLOBAL-");
+		
+		if (!roomg)
+			SCC_ABORT(@1, "Room global not found!");
+			
+		//Go to global room and allocate script
+		scc_ns_push(sccp->ns,roomg);
+		scc_ns_push(sccp->ns,s);	//This pushes the scope of the variables
+
+		// declare the arguments
+//		sccp->local_vars = 0;
+		argAux = script->next;
+		while(argAux)
+		{
+			scc_ns_decl(sccp->ns,NULL,argAux->sym,SCC_RES_LVAR,argAux->type,sccp->local_vars);
+			sccp->local_vars++;
+			argAux = argAux->next;
+		}
+		
+		SCC_LIST_FREE(script, argAux);
+		
+		//Return to root level
+		/** missing remove lvar? */
+		scc_ns_pop(sccp->ns);
+		scc_ns_pop(sccp->ns);
+		
+//		$$ = s;	
+	}
+
 }
 ;
 
@@ -457,38 +538,137 @@ roombodyentry: roomscrdecl '{' scriptbody '}'
 ;
 
 //globalscript: globalscrdecl '{' scriptbody '}'
-globalscript: globalscrdecl open_block scriptbody close_block
+globalscript: globalscrdecl2 open_block scriptbody close_block
 {
-	if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
+	scc_scr_arg_t *argAux, *script = $1;
+	scc_symbol_t *s, *a;
+	scc_symbol_t *roomg;
+
+	//First check that script is already declared
+	s = scc_ns_get_sym(sccp->ns,"-GLOBAL-", script->sym);
+	
+	if (s)
+	{
+		//If this is a declaration, then we're already in double decl error
+		//If this is a definition then it is a must
+		
+		a = s->childs;
+		argAux = script->next;
+		while(argAux && a)
+		{
+			if (strcmp(a->sym, argAux->sym))
+			{
+				SCC_LIST_FREE(script, argAux);
+				SCC_ABORT(@1, "Global script \'%s\' double declaration mismatch arguments",s->sym);
+			}
+			a = a->next;
+			argAux = argAux->next;
+		}
+	}
+	else
+	{
+		SCC_LIST_FREE(script, argAux);
+		SCC_ABORT(@1, "Global script \'%s\' has no forward declaration",s->sym);	
+	}
+
+/*	
+	sccp->local_vars = 0;
+	for (a=s->childs;a;a=a->next)
+		{sccp->local_vars++;}
+	printf("local_vars = %d\n", sccp->local_vars);	//DEBUG
+*/
+	SCC_LIST_FREE(script, argAux);
+
+	roomg = scc_ns_get_sym(sccp->ns, NULL, "-GLOBAL-");
+	if (!roomg)
+		SCC_ABORT(@1, "Room global not found!");
+
+	if(!roomg->rid) scc_ns_get_rid(sccp->ns,roomg);
+	scc_ns_push(sccp->ns, roomg);
+	scc_ns_push(sccp->ns, s);
+
+	//We need to find roobj for global
+	scc_roobj_t *cur, *next;
+	cur = sccp->roobj_list;
+	while(cur)
+	{
+		if (cur->sym == roomg)
+			break;
+		cur = cur->next;
+	}
+
+	if(!cur)
+		SCC_ABORT(@1, "Global room object not created");
+
 	if($3) {
-	$3->sym = $1;
-	scc_roobj_add_scr(sccp->roobj,$3);
+		$3->sym = s;
+		scc_roobj_add_scr(cur,$3);
 	}
 
 	scc_ns_clear(sccp->ns,SCC_RES_LVAR);
 	scc_ns_pop(sccp->ns);
+	scc_ns_pop(sccp->ns);
 }
 ;
+
+globalscrdecl2: SCRIPT SYM scriptargs_all
+{
+
+	/*	The script pre-declaration will return the symbols for the function and
+		the arguments.
+		We will abuse a bit of the args struct.
+	*/
+	scc_scr_arg_t* args = $3;
+	scc_scr_arg_t* script;
+
+	script = calloc(1, sizeof(scc_scr_arg_t));
+
+	//Dump script name data and link
+	script->type = SCC_RES_SCR;
+	script->sym = strdup($2);
+	script->next = args;
+
+	$$ = script;
+}
+;
+
 
 //Global script declaration, always out of any room{}
 globalscrdecl: SCRIPT SYM scriptargs_all
 {
+
+	/*	The script pre-declaration will return the symbols for the function and
+		the arguments.
+		We will abuse a bit of the args struct.
+	*/
+	scc_scr_arg_t* args = $3;
+	scc_scr_arg_t* script;
+
+	script = calloc(1, sizeof(scc_scr_arg_t));
+
+	script->type = SCC_RES_SCR;
+	script->sym = strdup($2);
+	script->next = args;
+
+	$$ = script;
+
 	scc_scr_arg_t* a = $3;
-	scc_symbol_t* s;
+	scc_symbol_t *s, *roomg;
 
 	int type = SCC_RES_SCR;
 	int address = -1;
 
-	/*Sanity check for double definition */
-/*
-	s = scc_ns_get_sym(sccp->ns, NULL, $2);
-	if (s && s->type != SCC_RES_LVAR)
-		SCC_ABORT(@3,"Symbol \'%s\' already declared\n",$2);
-*/
+	s = scc_ns_decl(sccp->ns,"-GLOBAL-",$2,type,0,address);  
+	if(!s)
+		SCC_ABORT(@3,"Failed to declare global script \'%s\'.\n",$2);
 
-	s = scc_ns_decl(sccp->ns,NULL,$2,type,0,address);  
-	if(!s) SCC_ABORT(@3,"Failed to declare global script \'%s\'.\n",$2);
-
+	roomg = scc_ns_get_sym(sccp->ns, NULL, "-GLOBAL-");
+	
+	if (!roomg)
+		SCC_ABORT(@3, "Room global not found!");
+		
+	//Go to global room and allocate script
+	scc_ns_push(sccp->ns,roomg);
 	scc_ns_push(sccp->ns,s);	//This pushes the scope of the variables
 
 	// declare the arguments
@@ -499,6 +679,12 @@ globalscrdecl: SCRIPT SYM scriptargs_all
 		sccp->local_vars++;
 		a = a->next;
 	}
+	
+	//Return to root level
+	/** missing remove lvar? */
+	scc_ns_pop(sccp->ns);
+	scc_ns_pop(sccp->ns);
+	
 	$$ = s;
 }
 ;
@@ -1115,14 +1301,14 @@ vdecl: TYPE typemod SYM
   //  SCC_ABORT(@1,"Local bit variable are not possible.\n");
 
   $$ = scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_LVAR,$1 | $2,sccp->local_vars);
-  if(!$$) SCC_ABORT(@1,"Declaration failed.\n");
+  if(!$$) SCC_ABORT(@1,"Declaration failed for \'%s\'.\n", $3);
   sccp->local_vars++;
 }
 
 | vdecl ',' typemod SYM
 {
   $$ = scc_ns_decl(sccp->ns,NULL,$4,SCC_RES_LVAR,$1->subtype | $3,sccp->local_vars);
-  if(!$$) SCC_ABORT(@4,"Declaration failed.\n");
+  if(!$$) SCC_ABORT(@4,"Declaration failed for \'%s\'.\n", $4);
   sccp->local_vars++;
   $$ = $1;
 };
@@ -1132,9 +1318,14 @@ body: instruct
   $$ = $1;
 }
 
-| '{' instructions '}'
+//| '{' instructions '}'
+| open_block instructions close_block
 {
   $$ = $2;
+}
+| open_block close_block
+{
+	$$ = NULL;		//TODO: If we tolerate empty block of instructions
 }
 ;
 
@@ -1151,7 +1342,7 @@ instructions: instruct
 }
 ;
 
-instruct: oneinstruct ';'
+instruct: oneinstruct NEWLINE //';'
 | block
 ;
 
@@ -1242,7 +1433,34 @@ loopblock: loophead body
   $$->body = $2;
   free(scc_loop_pop());
 }
-| switchhead  '{' switchblock  '}'
+// SCUMM: do {} until ()
+| dohead open_block instructions '}' WHILE '(' statements ')' NEWLINE
+{
+  $$ = $1;
+  $$->subtype = $5;
+  $$->cond = $7;
+  $$->body = $3;
+  free(scc_loop_pop());
+}
+// SCUMM: do {} note:infinite loop
+| dohead open_block instructions close_block
+{
+	scc_statement_t* cond;
+
+	$$ = $1;
+	$$->subtype = WHILE;
+	$$->body = $3;
+
+	cond = calloc(1, sizeof(scc_statement_t));
+	cond->type = SCC_ST_VAL;
+	cond->val.i = 1;	//Always true
+	$$->cond = cond;
+
+	free(scc_loop_pop());
+}
+
+//| switchhead  '{' switchblock  '}'
+| switchhead  open_block switchblock2  close_block
 {
   $$ = $1;
   $$->body = $3;
@@ -1250,18 +1468,54 @@ loopblock: loophead body
 }
 ;
 
+for_ops: ISOLATED_INC
+	{
+		$$=ISOLATED_INC;
+	}
+	| ISOLATED_DEC
+	{
+		$$=ISOLATED_DEC;
+	}
+	;
 
 loophead: label FOR '(' opt_statements ';' statements ';' opt_statements ')'
 {
-  $$ = calloc(1,sizeof(scc_instruct_t));
-  $$->type = SCC_INST_FOR;
-  $$->sym = $1;
-  $$->pre = $4;
-  $$->cond = $6;
-  $$->post = $8;
-  scc_loop_push($$->type,$$->sym);
+	$$ = calloc(1,sizeof(scc_instruct_t));
+	$$->type = SCC_INST_FOR;
+	$$->sym = $1;
+	$$->pre = $4;
+	$$->cond = $6;
+	$$->post = $8;
+	scc_loop_push($$->type,$$->sym);
 }
+| label FOR statements TO restricted_statement for_ops		//SCUMM
+{
+	scc_statement_t *post;
+	$$ = calloc(1,sizeof(scc_instruct_t));
+	$$->type = SCC_INST_FOR;
+	$$->sym = $1;
+	$$->pre = $3;
 
+	//Check that $5->type = SCC_ST_VAL;
+
+	//  SCC_BOP($$,<,$1,$2,$3);
+	SCC_BOP($$->cond,<,$3->val.o.argv,'<',$5);
+//	$$->cond = $5;	//TODO: instruction must be created
+	
+	post = calloc(1,sizeof(scc_statement_t));
+	post->type = SCC_ST_OP;
+	post->val.o.type = SCC_OT_UNARY;
+	post->val.o.op = ($6 == ISOLATED_INC) ? POSTINC : POSTDEC;
+	post->val.o.argc = 1;
+	post->val.o.argv = $3->val.o.argv;
+	$$->post = post;
+
+printf("Inside SCUMM for loop header\n");	//MAN
+
+//	$$->cond = $5;	//TODO: instruction must be created
+//	$$->post = $6;	//TODO: instruction must be created
+	scc_loop_push($$->type,$$->sym);
+}
 | label WHILE '(' statements ')'
 {
   $$ = calloc(1,sizeof(scc_instruct_t));
@@ -1288,6 +1542,14 @@ switchhead: label SWITCH '(' statements ')'
   $$->type = SCC_INST_SWITCH;
   $$->sym = $1;
   $$->cond = $4;
+  scc_loop_push($$->type,$$->sym);
+}
+| label SWITCH statements		//In SCUMMM, parenthesis are optional
+{
+  $$ = calloc(1,sizeof(scc_instruct_t));
+  $$->type = SCC_INST_SWITCH;
+  $$->sym = $1;
+  $$->cond = $3;
   scc_loop_push($$->type,$$->sym);
 }
 ;
@@ -1325,6 +1587,48 @@ cutsceneblock: CUTSCENE '(' cargs ')' body
   $$->body2 = $4;
 }
 ;
+
+
+//This is experimental
+switchblock2
+	: caseheader open_block instructions close_block
+	{
+		$$ = calloc(1,sizeof(scc_instruct_t));
+		$$->type = SCC_INST_CASE;
+		$$->cond = $1;
+		$$->body = $3; 
+	}
+	| switchblock2 caseheader open_block instructions close_block
+	{
+		scc_instruct_t *n,*i;
+
+		for(i = $1 ; i->next ; i = i->next);
+		if(!i->cond)
+			SCC_ABORT(@2,"Case statements can't be added after a default.\n");
+
+		n = calloc(1,sizeof(scc_instruct_t));
+		n->type = SCC_INST_CASE;
+		n->cond = $2;
+		n->body = $4;
+
+		i->next = n;
+
+		$$ = $1;
+	}
+	;
+
+caseheader
+	: CASE statement
+	{
+		$$ = $2;
+	}
+	| DEFAULT
+	{
+		$$ = NULL;
+	}
+	;
+
+
 
 switchblock: caseblock instructions
 {
@@ -1432,6 +1736,254 @@ opt_statements: /* NOTHING */
   $$ = $1;
 }
 ;
+
+/*
+for_cond_statement
+	: var ASSIGN dval
+	{
+		$$ = calloc(1,sizeof(scc_statement_t));
+		$$->type = SCC_ST_OP;
+		$$->val.o.type = SCC_OT_ASSIGN;
+		$$->val.o.op = $2;
+		$$->val.o.argc = 2;
+		$$->val.o.argv = $1;
+		$1->next = $3;
+	}
+	;
+*/
+//ATTENTION: This rule is created just because of the for loop
+//Second term needs a statement with no var++ or var-- as this created conflict
+restricted_statement: dval
+{
+  $$ = $1;
+}
+
+| var
+{
+  $$ = $1;
+}
+
+| var '[' restricted_statement ']'
+{
+  scc_symbol_t* v;
+
+  if($1->type != SCC_ST_VAR)
+    SCC_ABORT(@1,"%s is not a variable, so it can't be subscripted.\n",
+	      $1->val.r->sym);
+  v = $1->val.v.r;
+  if(!(v->subtype & SCC_VAR_ARRAY))
+    SCC_ABORT(@1,"%s is not an array variable, so it can't be subscripted.\n",v->sym);
+  $$ = $1;
+  $$->val.v.y = $3;
+}
+
+| var '[' restricted_statement ',' restricted_statement ']'
+{
+  scc_symbol_t* v;
+
+  if($1->type != SCC_ST_VAR)
+    SCC_ABORT(@1,"%s is not a variable, so it can't be subscripted.\n",
+	      $1->val.r->sym);
+  v = $1->val.v.r;
+  if(!(v->subtype & SCC_VAR_ARRAY))
+    SCC_ABORT(@1,"%s is not an array variable, so it can't be subscripted.\n",v->sym);
+  $$ = $1;
+  $$->val.v.x = $3;
+  $$->val.v.y = $5;
+}
+
+| call
+{
+  $$ = $1;
+}
+
+| '[' cargs ']'
+{
+  scc_statement_t* a;
+  
+  for(a = $2 ; a ; a = a->next) {
+    if(a->type == SCC_ST_STR ||
+       a->type == SCC_ST_LIST)
+      SCC_ABORT(@2,"Strings and lists can't be used inside a list.\n");
+  }
+
+  $$ = calloc(1,sizeof(scc_statement_t));
+  $$->type = SCC_ST_LIST;
+  $$->val.l = $2;
+}
+
+| restricted_statement ASSIGN restricted_statement
+{
+  if($1->type != SCC_ST_VAR)
+    SCC_ABORT(@1,"rvalue is not a variable, so it can't be assigned.\n");
+
+  if(!($1->val.v.r->subtype & SCC_VAR_ARRAY) &&
+     ($3->type == SCC_ST_STR ||
+      $3->type == SCC_ST_LIST))
+      SCC_ABORT(@1,"list and strings can only be assigned to "
+                "array variables.\n");
+
+  if($1->val.v.x && $3->type == SCC_ST_STR)
+    SCC_ABORT(@1,"Strings can't be assigned to 2-dim arrays.\n");
+
+  $$ = calloc(1,sizeof(scc_statement_t));
+  $$->type = SCC_ST_OP;
+  $$->val.o.type = SCC_OT_ASSIGN;
+  $$->val.o.op = $2;
+  $$->val.o.argc = 2;
+  $$->val.o.argv = $1;
+  $1->next = $3;
+}
+
+| restricted_statement '?' restricted_statement ':' restricted_statement
+{
+  $$ = calloc(1,sizeof(scc_statement_t));
+  $$->type = SCC_ST_OP;
+  $$->val.o.type = SCC_OT_TERNARY;
+  $$->val.o.op = $2;
+  $$->val.o.argc = 3;
+  $$->val.o.argv = $1;
+  $1->next = $3;
+  $3->next = $5;
+}
+
+| restricted_statement LOR restricted_statement
+{
+  SCC_BOP($$,||,$1,$2,$3);
+}
+
+| restricted_statement LAND restricted_statement
+{
+  SCC_BOP($$,&&,$1,$2,$3);
+}
+
+| restricted_statement IS isargs
+{
+  scc_func_t* f;
+  scc_statement_t *a,*list;
+  char* err;
+  
+  f = scc_get_func(sccp,"isObjectOfClass");
+  if(!f)
+    SCC_ABORT(@1,"Internal error: isObjectOfClass not found.\n");
+  
+  // create the arguments
+  list = calloc(1,sizeof(scc_statement_t));
+  list->type = SCC_ST_LIST;
+  list->val.l = $3;
+  
+  $1->next = list;
+  
+  // create the call
+  $$ = calloc(1,sizeof(scc_statement_t));
+  $$->type = SCC_ST_CALL;
+  
+  $$->val.c.func = f;
+  $$->val.c.argv = $1;
+  
+  for(a = $1 ; a ; a = a->next)
+    $$->val.c.argc++;
+  
+  err = scc_statement_check_func(&$$->val.c);
+  if(err)
+    SCC_ABORT(@1,"%s",err);
+}
+
+| restricted_statement '|' restricted_statement
+{
+  SCC_BOP($$,|,$1,$2,$3);
+}
+
+| restricted_statement '&' restricted_statement
+{
+  SCC_BOP($$,&,$1,$2,$3);
+}
+
+| restricted_statement NEQ restricted_statement
+{
+  SCC_BOP($$,!=,$1,$2,$3);
+}
+
+| restricted_statement EQ restricted_statement
+{
+  SCC_BOP($$,==,$1,$2,$3);
+}
+
+| restricted_statement GE restricted_statement
+{
+  SCC_BOP($$,>=,$1,$2,$3);
+}
+
+| restricted_statement '>' restricted_statement
+{
+  SCC_BOP($$,>,$1,$2,$3);
+}
+
+| restricted_statement LE restricted_statement
+{
+  SCC_BOP($$,<=,$1,$2,$3);
+}
+
+| restricted_statement '<' restricted_statement
+{
+  SCC_BOP($$,<,$1,$2,$3);
+}
+
+| restricted_statement '-' restricted_statement
+{
+  SCC_BOP($$,-,$1,$2,$3);
+}
+
+| restricted_statement '+' restricted_statement
+{
+  SCC_BOP($$,+,$1,$2,$3);
+}
+
+| restricted_statement '/' restricted_statement
+{
+  SCC_BOP($$,/,$1,$2,$3);
+}
+
+| restricted_statement '*' restricted_statement
+{
+  SCC_BOP($$,*,$1,$2,$3);
+}
+
+| '-' restricted_statement %prec NEG
+{
+   if($2->type == SCC_ST_VAL) {
+    $2->val.i = -$2->val.i;
+    $$ = $2;
+  } else { 
+    $$ = calloc(1,sizeof(scc_statement_t));
+    $$->type = SCC_ST_OP;
+    $$->val.o.type = SCC_OT_UNARY;
+    $$->val.o.op = $1;
+    $$->val.o.argc = 1;
+    $$->val.o.argv = $2;
+  }
+}
+
+| '!' restricted_statement
+{
+  if($2->type == SCC_ST_VAL) {
+    $2->val.i = ! $2->val.i;
+    $$ = $2;
+  } else { // we call not
+    $$ = calloc(1,sizeof(scc_statement_t));
+    $$->type = SCC_ST_OP;
+    $$->val.o.type = SCC_OT_UNARY;
+    $$->val.o.op = $1;
+    $$->val.o.argc = 1;
+    $$->val.o.argv = $2;
+  }
+}
+| '(' restricted_statement ')'
+{
+  $$ = $2;
+}
+;
+
 
 statement: dval
 {

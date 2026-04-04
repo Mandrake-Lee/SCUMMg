@@ -21,6 +21,32 @@
  */
  
 #include "scc_parse.h"
+//Hack! We will create a phantom global room for better storage of global scripts
+int scc_parser_addglobalroom(scc_parser_t* sccp)
+{
+	scc_symbol_t* sym;
+	const int location = -1;
+
+	//Sanity check
+	if(!sccp->ns || !sccp)
+		return -1;
+		
+	sym = scc_ns_decl(sccp->ns,NULL,"-GLOBAL-",SCC_RES_ROOM,0, location);
+	scc_ns_get_rid(sccp->ns,sym);
+	scc_ns_push(sccp->ns,sym);
+	sccp->local_scr = sccp->target->max_global_scr;
+	memset(&sccp->ns->as[SCC_RES_LSCR],0,0x10000/8);
+	scc_ns_pop(sccp->ns);
+	
+	//Create room object and link to the list
+	sccp->roobj = scc_roobj_new(sccp->target,sym);	
+	sccp->roobj->next = sccp->roobj_list;
+	sccp->roobj_list = sccp->roobj;
+	sccp->roobj = NULL;
+	
+	return 0;
+}
+
 
 // WARNING: This function realloc the file to fit the new path in
 void scc_parser_find_res(scc_parser_t* sccp, char** file_ptr) {
@@ -79,6 +105,9 @@ scc_source_t* scc_parser_parse(scc_parser_t* sccp,char* file,char do_deps) {
   sccp->local_scr = sccp->target->max_global_scr;
   sccp->cycl = 1;
   sccp->do_deps = do_deps;
+	
+	//Add global room by default
+	scc_parser_addglobalroom(sccp);
 
   if(scc_parser_parse_internal(sccp)) return NULL;
 

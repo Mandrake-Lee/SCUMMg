@@ -46,7 +46,9 @@ static scc_keyword_t scc_keywords[] = {
 	{ "default",    DEFAULT,   -1 },
 	{ "do",         DO,        -1 },
 	{ "else",       ELSE,      -1 },
-	{ "for",        FOR,       -1 },
+	{ "enter",		ENTER,		-1},					//SCUMM
+	{ "exit",		EXIT,		-1},					//SCUMM
+	{ "for",        FOR,       -1 },				
 	{ "global",     SCRTYPE,   SCC_RES_SCR },
 	{ "if",         IF,        0 },
 	{ "int",        TYPE,      SCC_VAR_WORD },
@@ -61,6 +63,7 @@ static scc_keyword_t scc_keywords[] = {
 	{ "script",     SCRIPT,    -1 },
 	{ "sound",      RESTYPE,   SCC_RES_SOUND },
 	{ "switch",     SWITCH,    -1 },
+	{ "to",         TO,        -1 },					//SCUMM
 	{ "try",        TRY,       -1 },
 	{ "unless",     IF,        1 },
 	{ "until",      WHILE,     1 },						//SCUMM
@@ -322,12 +325,14 @@ int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
     int tpos = 0,pos = 0;
     int define_line = -1, define_col = -1;
 	int newlineCount = 0;
+	static int counterEOF = 0;
+	static int preSeparator = 0;
     scc_keyword_t* keyword;
 
     c = scc_lex_at(lex,0);
 
-    // Experimental code to handle EOF as terminator of statements with no NEWLINE
-	static int counterEOF = 0;
+    // Code to handle EOF as terminator of statements with no NEWLINE
+	// Basically injects a NEWLINE first time we see an EOF
 	if (!c)
 	{
 		if (!counterEOF)
@@ -341,10 +346,34 @@ int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
 			return 0;
 		}
 	}
-//    if(!c) return 0;
 
     //scc_lex_get_line_column(lex,&llocp->first_line,&llocp->first_column);
 
+	//For the sake of clarity, we will capture here SCUMM operator "++" and "--"
+	if (preSeparator && (c == '+' || c == '-'))
+	{
+		d= scc_lex_at(lex,tpos+2);
+		if ( d == ' ' || d == '\t' || d == '\n')
+		{
+			// Get the string
+			str = scc_lex_gets(lex,tpos+2);
+			
+			if (!strcmp(str,"++"))
+			{
+				tpos+=2;
+				free(str);
+				return ISOLATED_INC;
+			}
+			else if (!strcmp(str,"--"))
+			{
+				tpos+=2;				
+				free(str);
+				return ISOLATED_DEC;
+			}
+			//If there's a strange syntax we let the rest of the code handle it
+		}
+	}
+	preSeparator=0;	//We will drop the usage of this variable here as handling later is complicated. MAN
     // a sym, a keyword or an integer
     if(SCC_ISALNUM(c) || c == '_') {
         // read the whole word
@@ -640,7 +669,7 @@ int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
 			if (c=='\n')
 				newlineCount++;			
         } while (c == ' ' || c == '\n' || c == '\t');
-
+		preSeparator=1;
         scc_lex_drop(lex,tpos-1);
 		if (newlineCount)
 			return NEWLINE;

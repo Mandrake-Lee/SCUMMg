@@ -82,7 +82,7 @@ int main (int argc, char** argv) {
 	sccp = scc_parser_new(scc_include,scc_res_path,scc_vm_version);
 
 	for(f = files ; f ; f = f->next) {
-		
+
 		if(!less_pp){
 			strcpy(filenamepp,f->val);
 			strcat(filenamepp, "pp");
@@ -94,7 +94,7 @@ int main (int argc, char** argv) {
 			fclose(filein);
 			fclose(fileout);
 			cpp_free(scummpp);
-			
+		
 			if (i==0) {
 				scc_log(LOG_ERR,"Failed SCUMM preprocessor %s.\n",out);
 				return -1;
@@ -105,14 +105,15 @@ int main (int argc, char** argv) {
 			 * to have an intermediate file written.
 			 * However, the original code is reluctant
 			 */
+			char* aux = NULL;
 			if (i) {
-				realloc(f->val, strlen(filenamepp)+1);
-				sprintf(f->val,"%s",filenamepp);
+				free(f->val);
+				f->val= strdup(filenamepp);
 			}
 		}
-		
+		scc_log(LOG_MSG, "Parsing %s\n", f->val);		//MAN
 		src = scc_parser_parse(sccp,f->val,scc_do_deps);
-		if(!less_pp) remove(filenamepp);	/* Remove temporal file */
+//		if(!less_pp) remove(filenamepp);	/* Remove temporal file */
 		if(!src) return 1;
 		src->next = srcs;
 		srcs = src;
