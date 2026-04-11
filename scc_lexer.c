@@ -54,6 +54,7 @@ static scc_keyword_t scc_keywords[] = {
 	{ "int",        TYPE,      SCC_VAR_WORD },
 	{ "is",         IS,        -1 },
 	{ "local",      SCRTYPE,   SCC_RES_LSCR },
+	{ "name",		NAME,		-1 },					//SCUMM
 	{ "nibble",     TYPE,      SCC_VAR_NIBBLE },
 	{ "object",     OBJECT,    -1 },
 	{ "of",			CASE,		-1},					//SCUMM

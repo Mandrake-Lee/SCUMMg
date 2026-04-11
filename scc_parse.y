@@ -121,6 +121,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token VOICE
 %token CYCL
 
+%token NAME		//Used for objects
+
 %nonassoc <integer> IF
 %nonassoc ELSE
 %nonassoc FOR
@@ -181,6 +183,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <inst> verbcode
 %type <sym> verbentry
 %type <vscr> verbsblock
+%type <vscr> verb_open_block
+%type <symlist> verb_symbols
 
 %type <integer> gvardecl
 %type <integer> gresdecl
@@ -198,12 +202,18 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <arg> globalscrdecl2
 %type <arg> symlist_commasep
 %type <sym> roomscrdecl
+%type <sym> roomscrdecl2
+%type <sym> enterscr_header
+%type <sym> exitscr_header
 %type <sym> globalscrdecl
+%type <sym> globalscr_openblk
 %type <sym> roomobjdecl
+%type <sym> roomobjdecl2
 %type <sym> cycledecl
 %type <sym> voicedecl
 %type <strlist> zbufs
-%type <intlist> synclist
+%type <intlist> synclist		//comma separated integer list
+%type <intlist> integerlist		//space separated integer list
 %type <integer> typemod
 %type <integer> natural
 
@@ -215,10 +225,17 @@ srcfile: %empty
 ;
 */
 
+/*
 srcfile: %empty
 	| srcfile srcs		//Meaningful blocks are separated with NEWLINE
 ;
+*/
 
+srcfile
+	: %empty
+	| NEWLINE
+	| srcfile src2
+	;
 
 //srcs: src
 srcs: %empty
@@ -227,10 +244,17 @@ srcs: %empty
 //| srcs src
 ;
 
-src: room
+src: room2
 	| gdecl
 	| globalscript
 ;
+
+src2
+	: room2
+	| globalscript
+	| gdecl NEWLINE
+	;
+
 
 //gdecl: gvardecl ';'
 gdecl: gvardecl
@@ -296,7 +320,7 @@ gdecl: gvardecl
 		scc_ns_push(sccp->ns,s);	//This pushes the scope of the variables
 
 		// declare the arguments
-//		sccp->local_vars = 0;
+		sccp->local_vars = 0;		//I'm not sure about this line. MAN
 		argAux = script->next;
 		while(argAux)
 		{
@@ -309,6 +333,8 @@ gdecl: gvardecl
 		
 		//Return to root level
 		/** missing remove lvar? */
+		scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+
 		scc_ns_pop(sccp->ns);
 		scc_ns_pop(sccp->ns);
 		
@@ -321,16 +347,15 @@ gdecl: gvardecl
 gvardecl: TYPE typemod SYM location
 {
 	scc_symbol_t* rr;
-	printf("I'm here %s\n", $3);
+
 	if($1 == SCC_VAR_BIT && !$2)
 		scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_BVAR,$1,$4);
-	else
-	{
-	//	printf("I'm here\n");
+//	else
+//	{
 		rr = scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_VAR,$1 | $2,$4);
-		if (!rr)
-			printf("I'm returning NULL for %s \n", $3);
-	}
+//		if (!rr)
+//			printf("I'm returning NULL for %s \n", $3);
+//	}
 
 	$$ = $1;
 }
@@ -454,6 +479,22 @@ roombdecl: ROOM SYM location
 }
 ;
 
+// This allow us to have the room declared before we parse the body.
+// At this point the roobj object is created.
+// Make it SCUMM compatible
+// room "room-filename" room-name {}
+roombdecl2
+	: ROOM STRING SYM 
+	{
+	  scc_symbol_t* sym = scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_ROOM,0,-1);
+	  scc_ns_get_rid(sccp->ns,sym);
+	  scc_ns_push(sccp->ns,sym);
+	  sccp->roobj = scc_roobj_new(sccp->target,sym);
+	  sccp->roobj->filename = strdup($2);
+	}
+	;
+
+/*
 // Here we should have the whole room.
 room: roombdecl roombody
 {
@@ -479,17 +520,64 @@ room: roombdecl roombody
   sccp->roobj = NULL;
 }
 ;
+*/
 
+
+// Here we should have the whole room.
+room2: roombdecl2 open_block roombody2 close_block
+{
+  scc_log(LOG_DBG,"Room done :)\n");
+  sccp->local_scr = sccp->target->max_global_scr;
+  memset(&sccp->ns->as[SCC_RES_LSCR],0,0x10000/8);
+  sccp->cycl = 1;
+  scc_ns_clear(sccp->ns,SCC_RES_CYCL);
+  scc_ns_pop(sccp->ns);
+
+  if(!sccp->roobj->scr &&
+     !sccp->roobj->lscr &&
+     !sccp->roobj->obj &&
+     !sccp->roobj->res &&
+     !sccp->roobj->cycl &&
+     !sccp->roobj->image &&
+	 !sccp->roobj->enterscr &&
+	 !sccp->roobj->exitscr
+	 ) {
+    scc_log(LOG_DBG,"Room is empty, only declarations.\n");
+    scc_roobj_free(sccp->roobj);
+  } else {
+    sccp->roobj->next = sccp->roobj_list;
+    sccp->roobj_list = sccp->roobj;
+  }
+  sccp->roobj = NULL;
+}
+;
+
+/*
 roombody: '{' '}'
 | '{' roombodyentries '}'
 //| '{' roomdecls '}'
 | '{' roomdecls roombodyentries '}'
 ;
+*/
 
+roombody2
+	: /*empty*/
+	| roombodyentries2
+	//| '{' roomdecls '}'
+	| roomdecls roombodyentries2
+	;
+
+/*
 roombodyentries: roombodyentry
 | roombodyentries roombodyentry
 ;
+*/
+roombodyentries2
+	: roombodyentry2
+	| roombodyentries2 roombodyentry2
+	;
 
+/*
 // scripts, both local and global
 roombodyentry: roomscrdecl '{' scriptbody '}'
 {
@@ -512,6 +600,7 @@ roombodyentry: roomscrdecl '{' scriptbody '}'
 // objects
 | roomobjdecl '{' objectparams objectverbs '}'
 {
+
   if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
   // add the obj to the room
   scc_roobj_add_obj(sccp->roobj,sccp->obj);
@@ -536,10 +625,194 @@ roombodyentry: roomscrdecl '{' scriptbody '}'
 | gvardecl ';'
 {}
 ;
+*/
+
+enterscr_header
+	: ENTER
+	{
+		scc_symbol_t* s;
+		char* roomname = sccp->roobj->sym->sym;
+		
+		//Only 1 enter script can exist
+		if (sccp->roobj->enterscr)
+			SCC_ABORT(@1, "enter script is already defined in room '%s'.\n", sccp->roobj->sym->sym);
+	
+		s = scc_ns_decl(sccp->ns,roomname,"enter",SCC_RES_LSCR,0,-1);
+		if(!s) SCC_ABORT(@1,"Failed to declare 'enter' script.\n");
+
+		if(s->addr < 0)
+			if(!scc_ns_alloc_sym_addr(sccp->ns,s,&sccp->local_scr))
+				SCC_ABORT(@1,"Failed to allocate 'enter' script address.\n");
+
+		scc_ns_push(sccp->ns,s);
+		sccp->local_vars = 0;
+		$$ = s;
+	}
+	;
+
+exitscr_header
+	: EXIT
+	{
+		scc_symbol_t* s;
+		char* roomname = sccp->roobj->sym->sym;
+		
+		//Only 1 enter script can exist
+		if (sccp->roobj->exitscr)
+			SCC_ABORT(@1, "exit script is already defined in room '%s'.\n", sccp->roobj->sym->sym);
+	
+		s = scc_ns_decl(sccp->ns,roomname,"exit",SCC_RES_LSCR,0,-1);
+		if(!s) SCC_ABORT(@1,"Failed to declare 'exit' script.\n");
+
+		if(s->addr < 0)
+			if(!scc_ns_alloc_sym_addr(sccp->ns,s,&sccp->local_scr))
+				SCC_ABORT(@1,"Failed to allocate 'exit' script address.\n");
+
+		scc_ns_push(sccp->ns,s);
+		sccp->local_vars = 0;
+		$$ = s;
+	}
+	;
+
+
+// scripts, local
+//roombodyentry2: roomscrdecl '{' scriptbody '}'
+roombodyentry2
+	:roomscrdecl2 open_block scriptbody close_block
+	{
+		if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
+		if($3) {
+			$3->sym = $1;
+			scc_roobj_add_scr(sccp->roobj,$3);
+		}
+		scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+		scc_ns_pop(sccp->ns);
+	}
+	| enterscr_header open_block scriptbody close_block
+	{
+		if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
+		if($3) {
+			$3->sym = $1;
+			sccp->roobj->enterscr = $3;
+		}
+		scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+		scc_ns_pop(sccp->ns);
+	}
+	| exitscr_header open_block scriptbody close_block
+	{
+		if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
+		if($3) {
+			$3->sym = $1;
+			sccp->roobj->exitscr = $3;
+		}
+		scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+		scc_ns_pop(sccp->ns);	
+	}
+	| roomobjdecl2 open_block objectparams2 objectverbs2 close_block
+	{
+		if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
+		// add the obj to the room
+		scc_roobj_add_obj(sccp->roobj,sccp->obj);
+		sccp->obj = NULL;
+	}	
+	;
+
+/*	
+// forward declaration
+| roomscrdecl ';'
+{
+  // well :)
+  scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+  scc_ns_pop(sccp->ns);
+}
+// objects
+| roomobjdecl '{' objectparams objectverbs '}'
+{
+
+  if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
+  // add the obj to the room
+  scc_roobj_add_obj(sccp->roobj,sccp->obj);
+  sccp->obj = NULL;
+}
+// forward declaration
+| roomobjdecl ';'
+{
+  scc_roobj_obj_free(sccp->obj);
+  sccp->obj = NULL;
+}
+| voicedef ';'
+{}
+| voicedecl ';'
+{}
+| cycledef ';'
+{}
+| cycledecl ';'
+{}
+| resdecl ';'
+{}
+| gvardecl ';'
+{}
+;
+*/
+
 
 //globalscript: globalscrdecl '{' scriptbody '}'
-globalscript: globalscrdecl2 open_block scriptbody close_block
+//globalscript: globalscrdecl2 open_block scriptbody close_block
+globalscript: globalscr_openblk scriptbody close_block
 {
+	scc_symbol_t *roomg;
+	scc_roobj_t *cur, *next;
+	
+	roomg = scc_ns_get_sym(sccp->ns, NULL, "-GLOBAL-");
+	if (!roomg)
+		SCC_ABORT(@1, "Room global not found!");
+
+	//We need to find roobj for global
+	cur = sccp->roobj_list;
+
+	while(cur)
+	{
+		if (cur->sym == roomg)
+			break;
+		cur = cur->next;
+	}
+
+	if(!cur)
+		SCC_ABORT(@1, "Global room object not created");
+
+	if($2) {
+		$2->sym = $1;
+		scc_roobj_add_scr(cur,$2);
+	}
+
+	scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+	scc_ns_pop(sccp->ns);
+	scc_ns_pop(sccp->ns);
+}
+;
+
+globalscrdecl2: SCRIPT SYM scriptargs_all
+{
+
+	/*	The script pre-declaration will return the symbols for the function and
+		the arguments.
+		We will abuse a bit of the args struct.
+	*/
+	scc_scr_arg_t* args = $3;
+	scc_scr_arg_t* script;
+
+	script = calloc(1, sizeof(scc_scr_arg_t));
+
+	//Dump script name data and link
+	script->type = SCC_RES_SCR;
+	script->sym = strdup($2);
+	script->next = args;
+
+	$$ = script;
+}
+;
+
+globalscr_openblk: globalscrdecl2 open_block
+	{
 	scc_scr_arg_t *argAux, *script = $1;
 	scc_symbol_t *s, *a;
 	scc_symbol_t *roomg;
@@ -584,8 +857,10 @@ globalscript: globalscrdecl2 open_block scriptbody close_block
 		SCC_ABORT(@1, "Room global not found!");
 
 	if(!roomg->rid) scc_ns_get_rid(sccp->ns,roomg);
-	scc_ns_push(sccp->ns, roomg);
-	scc_ns_push(sccp->ns, s);
+	if (!scc_ns_push(sccp->ns, roomg))
+		SCC_ABORT(@1, "Push level not worked for room %s", roomg->sym);
+	if (!scc_ns_push(sccp->ns, s))
+		SCC_ABORT(@1, "Push level not worked for global script %s", s->sym);
 
 	//We need to find roobj for global
 	scc_roobj_t *cur, *next;
@@ -598,39 +873,29 @@ globalscript: globalscrdecl2 open_block scriptbody close_block
 	}
 
 	if(!cur)
-		SCC_ABORT(@1, "Global room object not created");
-
-	if($3) {
-		$3->sym = s;
-		scc_roobj_add_scr(cur,$3);
+		SCC_ABORT(@1, "Global room object not created");	
+	
+	//Add arguments of the function as first local variables
+	sccp->local_vars = 0;
+	while(a)
+	{
+		scc_ns_decl(sccp->ns,NULL,a->sym,SCC_RES_LVAR,a->type,sccp->local_vars);
+		sccp->local_vars++;
+		a = a->next;
 	}
+	
+//	sccp->roobj = cur;
+	
+//	printf("Current push level symbol is '%s'\n", sccp->ns->cur->sym);	//MAN
+	a=scc_ns_get_sym_at(sccp->ns, SCC_RES_LVAR, 0x4000);
+	if(a)
+		printf("Found symbol at address 0 named '%s'\n", a->sym);	//MAN
+	
+	
+	$$ = s;
+	}
+	;
 
-	scc_ns_clear(sccp->ns,SCC_RES_LVAR);
-	scc_ns_pop(sccp->ns);
-	scc_ns_pop(sccp->ns);
-}
-;
-
-globalscrdecl2: SCRIPT SYM scriptargs_all
-{
-
-	/*	The script pre-declaration will return the symbols for the function and
-		the arguments.
-		We will abuse a bit of the args struct.
-	*/
-	scc_scr_arg_t* args = $3;
-	scc_scr_arg_t* script;
-
-	script = calloc(1, sizeof(scc_scr_arg_t));
-
-	//Dump script name data and link
-	script->type = SCC_RES_SCR;
-	script->sym = strdup($2);
-	script->next = args;
-
-	$$ = script;
-}
-;
 
 
 //Global script declaration, always out of any room{}
@@ -717,6 +982,35 @@ roomscrdecl: scripttype SCRIPT SYM  '(' scriptargs ')' location
 }
 ;
 
+roomscrdecl2
+	: SCRIPT SYM scriptargs_all
+	{
+		scc_scr_arg_t* a = $3;
+		scc_symbol_t* s;
+
+		s = scc_ns_decl(sccp->ns,NULL,$2,SCC_RES_LSCR,0,-1);
+		if(!s) SCC_ABORT(@3,"Failed to declare script %s.\n",$2);
+
+//		if($1 == SCC_RES_LSCR && s->addr < 0 &&
+//			strcmp($3,"entry") && strcmp($3,"exit"))
+		if(!scc_ns_alloc_sym_addr(sccp->ns,s,&sccp->local_scr))
+			SCC_ABORT(@3,"Failed to allocate local script address.\n");
+
+		scc_ns_push(sccp->ns,s);
+
+		// declare the arguments
+		sccp->local_vars = 0;
+		while(a) {
+			scc_ns_decl(sccp->ns,NULL,a->sym,SCC_RES_LVAR,a->type,sccp->local_vars);
+			sccp->local_vars++;
+			a = a->next;
+		}
+
+		$$ = s;
+	}
+	;
+
+
 roomobjdecl: OBJECT SYM location
 {
   scc_symbol_t* sym;
@@ -732,6 +1026,24 @@ roomobjdecl: OBJECT SYM location
   $$ = sym;
 }
 ;
+
+roomobjdecl2
+	: OBJECT SYM
+	{
+		scc_symbol_t* sym;
+
+		if(sccp->obj)
+			SCC_ABORT(@1,"Something went wrong with object declarations.\n");
+
+		sym = scc_ns_decl(sccp->ns,NULL,$2,SCC_RES_OBJ,0,-1);
+		if(!sym)
+			SCC_ABORT(@1,"Failed to declare object %s.\n",$2);
+
+		sccp->obj = scc_roobj_obj_new(sym);
+		$$ = sym;
+	}
+	;
+
 
 
 // the basic room parameters such as image, box, zplanes, etc
@@ -850,6 +1162,23 @@ synclist: INTEGER
 }
 ;
 
+integerlist
+	: INTEGER
+	{
+		$$ = malloc(2*sizeof(int));
+		$$[0] = 1;
+		$$[1] = $1;
+	}
+	| integerlist INTEGER
+	{
+		int l = $1[0]+1;
+		$$ = realloc($1,(l+1)*sizeof(int));
+		$$[l] = $2;
+		$$[0] = l;
+	}
+	;
+
+
 // generic resource declaration/definition
 resdecl: RESTYPE SYM location resdef
 {
@@ -895,12 +1224,34 @@ resdef: /* NOTHING */
 }
 ;
 
+/*
 // params chain, we can't use the same as the room
 // bcs we don't want ressource declaration here
 objectparams: objectparam ';'
 | objectparams objectparam ';'
 ;
+*/
 
+objectparams2
+	: objectparam2 NEWLINE
+	| objectparams2 objectparam2 NEWLINE
+	;
+
+objectparam2
+	: NAME IS STRING
+	{
+	if(!scc_roobj_obj_set_param(sccp->obj, "name",$3))
+		SCC_ABORT(@1,"Failed to set object parameter.\n");
+	}
+	| CLASS IS integerlist
+	{
+		int i, length= $3[0];
+		for (i=0;i<length;i++)
+			scc_roobj_obj_set_classpos(sccp->obj, $3[i]);
+	}
+	;
+
+/*
 // used by objects
 objectparam: SYM ASSIGN STRING
 {
@@ -963,6 +1314,9 @@ objectparam: SYM ASSIGN STRING
     SCC_ABORT(@2,"Invalid operator for parameter setting.\n");
 }
 ;
+*/
+
+
 
 classlist: SYM
 {
@@ -1061,6 +1415,101 @@ objectverbs: /* nothing */
 }
 ;
 
+objectverbs2
+	: /* nothing */
+	{
+	}
+	| verb_open_block scriptbody close_block
+	{
+		scc_verb_script_t* v,*l;
+		scc_script_t* scr;
+
+		//scriptbody should be added to the last verb entry
+		for (v=$1;v->next;v=v->next);
+		v->inst = $2;
+
+		for(v = $1 ; v ; l = v, v = v->next,free(l) ) {
+			if(!sccp->do_deps && v->inst)
+				scr = scc_script_new(sccp->ns,v->inst,SCC_OP_VERB_RET,v->next ? 0 : 1);
+			else
+				scr = calloc(1,sizeof(scc_script_t));
+			
+			scr->sym = v->sym;
+			if(!scc_roobj_obj_add_verb(sccp->obj,scr))
+				SCC_ABORT(@1,"Failed to add verb %s.\n",v->sym ? v->sym->sym : "default");
+		}    
+//		scc_ns_clear(sccp->ns,SCC_RES_LVAR);
+//		scc_ns_pop(sccp->ns);
+	}
+	;
+
+verb_open_block
+	: VERB verb_symbols open_block
+	{
+		scc_symbol_t **array, *a;
+		scc_verb_script_t *objverbscr, *vscr;
+		int i,l;
+		
+		for(i=0;$2[i];i++)
+		{
+			vscr = calloc(1,sizeof(scc_verb_script_t));
+			vscr->sym = $2[i];
+			vscr->inst = NULL;
+			if (!objverbscr)
+				objverbscr = vscr;
+			vscr = vscr->next;
+		}
+	
+		free($2);
+		
+		$$ = objverbscr;
+	}
+	;
+
+verb_symbols
+	: SYM
+	{
+		scc_symbol_t** array;
+		scc_symbol_t* sym = scc_ns_get_sym(sccp->ns,NULL,$1);
+		if(!sym)
+			SCC_ABORT(@1,"%s is not a declared verb.\n",$1);	
+	
+		if(sym->type != SCC_RES_VERB)
+			SCC_ABORT(@1,"%s is not a verb in the current context.\n",$1);
+
+		// allocate an rid
+		if(!sym->rid) scc_ns_get_rid(sccp->ns,sym);
+
+		//Create a NULL terminated array of symbol pointers
+		array = malloc(2*sizeof(scc_symbol_t**));
+		array[0] = sym;
+		array[1] = NULL;
+		$$ = array;
+	}
+	| verb_symbols SYM
+	{
+		scc_symbol_t *sym;
+		int l;
+		
+		sym = scc_ns_get_sym(sccp->ns,NULL,$2);
+		if(!sym)
+			SCC_ABORT(@1,"%s is not a declared verb.\n",$2);	
+	
+		if(sym->type != SCC_RES_VERB)
+			SCC_ABORT(@1,"%s is not a verb in the current context.\n",$2);
+
+		// allocate an rid
+		if(!sym->rid) scc_ns_get_rid(sccp->ns,sym);
+
+		//Append to array
+		for (l=0;$1[l];l++);	//Find length
+		$$=realloc($1, (l+2)*sizeof(scc_symbol_t**));
+		$$[l] = sym;
+		$$[l+1] = NULL;
+	}
+	;
+
+	
 verbentrydecl: VERB '(' scriptargs ')'
 {
   scc_scr_arg_t* a = $3;
@@ -1299,6 +1748,7 @@ vdecl: TYPE typemod SYM
 {
   //if($1 == SCC_VAR_BIT)
   //  SCC_ABORT(@1,"Local bit variable are not possible.\n");
+//	printf("declare symbol '%s'at local_vars = %d\n",$3, sccp->local_vars);	//MAN 
 
   $$ = scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_LVAR,$1 | $2,sccp->local_vars);
   if(!$$) SCC_ABORT(@1,"Declaration failed for \'%s\'.\n", $3);
@@ -1510,7 +1960,7 @@ loophead: label FOR '(' opt_statements ';' statements ';' opt_statements ')'
 	post->val.o.argv = $3->val.o.argv;
 	$$->post = post;
 
-printf("Inside SCUMM for loop header\n");	//MAN
+//printf("Inside SCUMM for loop header\n");	//MAN
 
 //	$$->cond = $5;	//TODO: instruction must be created
 //	$$->post = $6;	//TODO: instruction must be created

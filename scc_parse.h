@@ -117,6 +117,7 @@ typedef union scc_bison_val_s {
   char* str;
   char** strlist;
   scc_symbol_t* sym;
+  scc_symbol_t** symlist;
   scc_statement_t* st;
   scc_instruct_t* inst;
   scc_scr_arg_t* arg;
