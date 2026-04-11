@@ -53,6 +53,8 @@ static int scc_roobj_set_image(scc_roobj_t* ro,scc_ns_t* ns,char* val);
 static int scc_roobj_set_boxd(scc_roobj_t* ro,scc_ns_t* ns,char* val);
 static int scc_roobj_set_boxm(scc_roobj_t* ro,scc_ns_t* ns,char* val);
 static int scc_roobj_set_scal(scc_roobj_t* ro,scc_ns_t* ns,char* val);
+static int scc_write_exitscr_block(scc_roobj_t* ro, scc_fd_t* fd);
+static int scc_write_enterscr_block(scc_roobj_t* ro, scc_fd_t* fd);
 
 struct {
   char* name;
@@ -835,6 +837,22 @@ int scc_roobj_obj_set_class(scc_roobj_obj_t* obj, scc_symbol_t* sym) {
   return 0;
 }
 
+//This is a hack to meet SCUMM class bitwise coded
+//classes are integer values, from 0 to max. Usually 32
+//defined in classes.def or inline
+int scc_roobj_obj_set_classpos(scc_roobj_obj_t* obj, unsigned int classpos) {
+
+	if (classpos > SCC_MAX_CLASS)
+	{
+		scc_log(LOG_ERR, "Setting class beyond max (%d)!", SCC_MAX_CLASS);
+		return 0;
+	}
+
+	// add it
+	obj->classval |= (1<<classpos);
+	return 1;
+}
+
 //////////////////////////// Writing ///////////////////////////////
 
 scc_pal_t* scc_roobj_gen_pals(scc_roobj_t* ro) {
@@ -1172,6 +1190,38 @@ int scc_write_lscr_block(scc_roobj_t* ro, scc_fd_t* fd) {
   }
 
   return 1;
+}
+
+static int scc_write_exitscr_block(scc_roobj_t* ro, scc_fd_t* fd) {
+	scc_script_t *exitscr = NULL;
+	exitscr = ro->exitscr;
+
+	if(exitscr) {
+		scc_fd_w32(fd,MKID('e','x','c','d'));
+		scc_fd_w32be(fd,8 + scc_scob_size(exitscr));
+		scc_write_scob(fd,exitscr);
+	} else {
+		scc_fd_w32(fd,MKID('E','X','C','D'));
+		scc_fd_w32be(fd,8 + 1);
+		scc_fd_w8(fd,0x65);
+	}
+	return 1;
+}
+
+static int scc_write_enterscr_block(scc_roobj_t* ro, scc_fd_t* fd) {
+	scc_script_t *enterscr = NULL;
+	enterscr = ro->enterscr;
+
+	if(enterscr) {
+		scc_fd_w32(fd,MKID('e','n','c','d'));
+		scc_fd_w32be(fd,8 + scc_scob_size(enterscr));
+		scc_write_scob(fd,enterscr);
+	} else {
+		scc_fd_w32(fd,MKID('E','N','C','D'));
+		scc_fd_w32be(fd,8 + 1);
+		scc_fd_w8(fd,0x65);
+	}
+	return 1;
 }
 
 static int scc_imob_size(int version,scc_roobj_obj_t* obj) {
@@ -1525,8 +1575,10 @@ int scc_roobj_write(scc_roobj_t* ro, scc_ns_t* ns, scc_fd_t* fd) {
 
   // All the stuff needed for local scripts
   scc_write_lscr_block(ro,fd);
-
-
+  
+  // Write enter and exit script of the room
+  scc_write_enterscr_block(ro,fd);
+  scc_write_exitscr_block(ro,fd);
 
   // BOXD
   scc_fd_w32(fd,MKID('B','O','X','D'));

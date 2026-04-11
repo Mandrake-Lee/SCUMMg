@@ -110,44 +110,49 @@ struct scc_roobj_obj_st {
   scc_symbol_t* owner;
   /// Classes the object belong to
   scc_symbol_t* class[SCC_MAX_CLASS];
+  uint32_t classval;	//This is the bitwise, hardcoded class value as original SCUMM 
 };
 
 /// Room data
 struct scc_roobj_st {
-  /// Chain when we have several room
-  scc_roobj_t* next;
+	/// Chain when we have several room
+	scc_roobj_t* next;
+	/// Room filename
+	char* filename;
+	/// Targeted VM version
+	scc_target_t* target;
 
-  /// Targeted VM version
-  scc_target_t* target;
+	/// Symbol of this romm
+	scc_symbol_t* sym;
 
-   /// Symbol of this romm
-  scc_symbol_t* sym;
+	/// Global scripts
+	scc_script_t* scr;
+	/// Local scripts
+	scc_script_t* lscr;
+	// Enter script
+	scc_script_t* enterscr;
+	// Exit script
+	scc_script_t* exitscr;
+	/// Object list
+	scc_roobj_obj_t* obj,*last_obj;
 
-  /// Global scripts
-  scc_script_t* scr;
-  /// Local scripts
-  scc_script_t* lscr;
+	/// the defined ressources.
+	scc_roobj_res_t *res;
 
-  /// Object list
-  scc_roobj_obj_t* obj,*last_obj;
-
-  /// the defined ressources.
-  scc_roobj_res_t *res;
-
-  /// Palette cycles
-  scc_roobj_cycl_t* cycl;
-  /// Transparent color
-  int trans;
-  /// Background image
-  scc_img_t* image;
-  /// Z-Planes for masking actors
-  scc_img_t* zplane[SCC_MAX_IM_PLANES];
-  /// Box list
-  scc_boxd_t* boxd;
-  /// Box matrix
-  scc_data_t* boxm;
-  /// Scaling slots
-  scc_data_t* scal;
+	/// Palette cycles
+	scc_roobj_cycl_t* cycl;
+	/// Transparent color
+	int trans;
+	/// Background image
+	scc_img_t* image;
+	/// Z-Planes for masking actors
+	scc_img_t* zplane[SCC_MAX_IM_PLANES];
+	/// Box list
+	scc_boxd_t* boxd;
+	/// Box matrix
+	scc_data_t* boxm;
+	/// Scaling slots
+	scc_data_t* scal;
 };
 
 struct scc_source_st {
@@ -205,6 +210,7 @@ int scc_roobj_obj_set_param(scc_roobj_obj_t* obj,char* sym,char* val);
 int scc_roobj_obj_set_int_param(scc_roobj_obj_t* obj,char* sym,int val);
 
 int scc_roobj_obj_set_class(scc_roobj_obj_t* obj, scc_symbol_t* sym);
+int scc_roobj_obj_set_classpos(scc_roobj_obj_t* obj, uint32_t classpos);
 
 
 #endif
