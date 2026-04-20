@@ -212,3 +212,208 @@ char* scc_statement_check_func(scc_call_t* c) {
 
     return NULL;
 }
+
+//Goes through all the possible options of the verb statement and build the code
+scc_statement_t* scc_statement_build_verb(scc_parser_t* sccp, scc_symbol_t* vsym, scc_verb_statement_t* vst)
+{
+	scc_func_t* f;
+	scc_statement_t *verbcode=NULL, *last=NULL, *stmnt, *a;
+	char* err = NULL;
+
+	//Sanity check
+	if (!vsym || !vst)
+		return NULL;
+	
+	//Always set current verb in stack
+	//Create assignment of symbol
+	a = calloc(1,sizeof(scc_statement_t));
+	a->type = SCC_ST_RES;
+	a->val.r = vsym;
+	//Create proper call to function
+	stmnt = calloc(1,sizeof(scc_statement_t));
+	stmnt->type = SCC_ST_CALL;
+	stmnt->val.c.func = scc_get_func(sccp,"_setCurrentVerb");
+	stmnt->val.c.user_script = 0;
+	stmnt->val.c.argv = a;
+	stmnt->val.c.argc = 1;
+
+	SCC_LIST_ADD(verbcode, last, stmnt);	
+
+	if(vst->new)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_initVerb");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = NULL;
+		stmnt->val.c.argc = 0;
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}
+	
+	if (vst->name)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setVerbName");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = vst->name;
+		
+		for(a = vst->name ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+printf("NAME found in verb '%s'\n", vst->name->val.s->str);	//MAN
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}
+	if (vst->posxy)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setVerbXY");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = vst->posxy;
+		
+		for(a = vst->posxy ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}	
+	if (vst->color)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setVerbColor");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = vst->color;
+		
+		for(a = vst->color ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}
+	if (vst->hicolor)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setVerbHiColor");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = vst->hicolor;
+		
+		for(a = vst->hicolor ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}
+	if (vst->dimcolor)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setVerbDimColor");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = vst->dimcolor;
+		
+		for(a = vst->dimcolor ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}
+	if (vst->bakcolor)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setVerbBackColor");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = vst->bakcolor;
+		
+		for(a = vst->bakcolor ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}		
+	if (vst->key)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setVerbKey");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = vst->key;
+		
+		for(a = vst->key ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}
+	if (vst->state)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		switch(vst->state)
+		{
+			case VERB_ON:
+				stmnt->val.c.func = scc_get_func(sccp,"_setVerbOn");
+				break;
+			case VERB_OFF:
+				stmnt->val.c.func = scc_get_func(sccp,"_setVerbOff");
+				break;			
+			case VERB_DIM:
+				stmnt->val.c.func = scc_get_func(sccp,"_verbDim");
+				break;
+			default:
+				scc_log(LOG_ERR,"verb state unknown %d",vst->state);
+		}
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = NULL;
+		
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}
+	if (vst->image)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setVerbImage");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = vst->image;
+		
+		for(a = vst->image ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(verbcode, last, stmnt);
+	}
+	
+	return verbcode;
+}

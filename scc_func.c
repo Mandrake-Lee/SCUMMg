@@ -431,55 +431,55 @@ const scc_func_t scc_func_v6_v7[] = {
     { SCC_FA_VAL }
   },{
 
-    "setCurrentVerb", 0x9EC4, 0, 1, 0,
+    "_setCurrentVerb", 0x9EC4, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setVerbImage", 0x9E7C, 0, 1, 0,
+    "_setVerbImage", 0x9E7C, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setVerbName", 0x9E7D, 0, 1, 0,
+    "_setVerbName", 0x9E7D, 0, 1, 0,
     { SCC_FA_STR }
   },{
-    "setVerbColor", 0x9E7E, 0, 1, 0,
+    "_setVerbColor", 0x9E7E, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setVerbHiColor", 0x9E7F, 0, 1, 0,
+    "_setVerbHiColor", 0x9E7F, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setVerbXY", 0x9E80, 0, 2, 0,
+    "_setVerbXY", 0x9E80, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "setVerbOn", 0x9E81, 0, 0, 0,
+    "_setVerbOn", 0x9E81, 0, 0, 0,
     {}
   },{
-    "setVerbOff", 0x9E82, 0, 0, 0,
+    "_setVerbOff", 0x9E82, 0, 0, 0,
     {}
   },{
     "killVerb", 0x9E83, 0, 0, 0,
     {}
   },{
-    "initVerb", 0x9E84, 0, 0, 0,
+    "_initVerb", 0x9E84, 0, 0, 0,
     {}
   },{
-    "setVerbDimColor", 0x9E85, 0, 1, 0,
+    "_setVerbDimColor", 0x9E85, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "verbDim", 0x9E86, 0, 0, 0,
+    "_verbDim", 0x9E86, 0, 0, 0,
     {}
   },{
-    "setVerbKey", 0x9E87, 0, 1, 0,
+    "_setVerbKey", 0x9E87, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "verbCenter", 0x9E88, 0, 0, 0,
+    "_verbCenter", 0x9E88, 0, 0, 0,
     {}
   },{
-    "setVerbNameString", 0x9E89, 0, 1, 0,
+    "_setVerbNameString", 0x9E89, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setVerbObject", 0x9E8B, 0, 2, 0,
+    "_setVerbObject", 0x9E8B, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "setVerbBackColor", 0x9E8C, 0, 1, 0,
+    "_setVerbBackColor", 0x9E8C, 0, 1, 0,
     { SCC_FA_VAL }
   },{
     "redrawVerb", 0x9EFF, 0, 0, 0,

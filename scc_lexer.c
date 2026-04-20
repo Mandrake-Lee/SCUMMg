@@ -30,12 +30,16 @@
 // it must be kept sorted bcs a binary search is used on it
 static scc_keyword_t scc_keywords[] = {
 	{ "actor",      ACTOR,     -1 },				//SCUMM
+	{ "at",			AT,			-1},				//SCUMM
+	{ "bakcolor",	BAKCOLOR,	-1},				//SCUMM
 	{ "bit",        TYPE,      SCC_VAR_BIT },
 	{ "bit-variable",TYPE,		SCC_VAR_BIT },		//SCUMM
 	{ "break",      BRANCH,    SCC_BRANCH_BREAK },
 	{ "byte",       TYPE,      SCC_VAR_BYTE },
 //	{ "case",       CASE,      -1 },
 	{ "case",       SWITCH,		-1 },	
+	{ "center",     CENTER,		-1 },
+	{ "color",      COLOR,		-1 },					//SCUMM
 	{ "char",       TYPE,      SCC_VAR_CHAR },
 	{ "chset",      RESTYPE,   SCC_RES_CHSET },
 	{ "class",      CLASS,     -1 },
@@ -44,20 +48,28 @@ static scc_keyword_t scc_keywords[] = {
 	{ "cutscene",   CUTSCENE,  -1 },
 	{ "cycle",      CYCL,      -1 },
 	{ "default",    DEFAULT,   -1 },
+	{ "dim",	    DIM,		-1 },					//SCUMM
+	{ "dimcolor",   DIMCOLOR,	-1 },
 	{ "do",         DO,        -1 },
 	{ "else",       ELSE,      -1 },
 	{ "enter",		ENTER,		-1},					//SCUMM
 	{ "exit",		EXIT,		-1},					//SCUMM
 	{ "for",        FOR,       -1 },				
 	{ "global",     SCRTYPE,   SCC_RES_SCR },
+	{ "hicolor",    HICOLOR,   -1},						//SCUMM
 	{ "if",         IF,        0 },
+	{ "image",		IMAGE,		-1 },					//SCUMM
 	{ "int",        TYPE,      SCC_VAR_WORD },
 	{ "is",         IS,        -1 },
+	{ "key",        KEY,        -1 },
 	{ "local",      SCRTYPE,   SCC_RES_LSCR },
 	{ "name",		NAME,		-1 },					//SCUMM
+	{ "new",		NEW,		-1 },					//SCUMM
 	{ "nibble",     TYPE,      SCC_VAR_NIBBLE },
 	{ "object",     OBJECT,    -1 },
 	{ "of",			CASE,		-1},					//SCUMM
+	{ "off",		OFF,		-1},					//SCUMM
+	{ "on",			ON,			-1},					//SCUMM
 	{ "override",   OVERRIDE,  -1 },
 	{ "return",     RETURN,    SCC_BRANCH_RETURN },
 	{ "room",       ROOM,      -1 },

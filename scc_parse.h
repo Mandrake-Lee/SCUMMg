@@ -65,6 +65,7 @@ typedef struct scc_parser scc_parser_t;
 typedef union scc_bison_val_s scc_bison_val_t;
 typedef struct scc_parser scc_parser_t;
 
+typedef struct scc_verb_statement_st scc_verb_statement_t;	//Support of verb as single statement
 
 typedef struct scc_decl_st scc_decl_t;	/* Never in use? WOW! */
 
@@ -79,6 +80,7 @@ scc_parser_t* scc_parser_new(char** include, char** res_path,
 int scc_parser_error(scc_parser_t* sccpr,YYLTYPE *loc, const char *s);  /* Called by yyparse on error */
 scc_func_t* scc_get_func(scc_parser_t* p, char* sym);
 char* scc_statement_check_func(scc_call_t* c);
+scc_statement_t* scc_statement_build_verb(scc_parser_t* sccp, scc_symbol_t* vsym, scc_verb_statement_t* vst);
 
 /* Macros used exclusively in parse scc_parse.y file */
 #define SCC_BOP(d,bop,a,cop,b) {                              \
@@ -125,6 +127,7 @@ typedef union scc_bison_val_s {
   scc_str_t* strvar;
   int* intlist;
   scc_verb_script_t* vscr;
+  scc_verb_statement_t* verbst;		//verb as single statement
 } scc_bison_val_t;
 
 typedef struct scc_parser {
@@ -145,5 +148,23 @@ typedef struct scc_parser {
   int num_deps;
   char** deps;
 } scc_parser_t;
+
+enum {
+	VERB_ON = 1,
+	VERB_OFF,
+	VERB_DIM
+};
+
+struct scc_verb_statement_st
+{
+	int new;		//In fact it's bool
+	scc_statement_t* posxy;
+	scc_statement_t* name;
+	scc_statement_t *color, *hicolor, *dimcolor, *bakcolor;
+	scc_statement_t *key;
+	scc_statement_t *image;
+	int state;	//Visual state on/off/dim
+};
+
 
 #endif /* SCC_PARSE_H */
