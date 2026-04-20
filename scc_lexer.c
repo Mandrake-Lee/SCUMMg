@@ -540,7 +540,18 @@ int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
         // divide
         lvalp->integer = '/';
         return '/';
-
+		
+	case '\\':
+        c = scc_lex_getc(lex);
+		//Evaluate if we're in a line separator as "\NEWLINE"		
+		if (c =='\n')
+		{
+			scc_lex_drop(lex,tpos);
+			return -1;
+		}
+		scc_lex_error(lex,"Not valid '\\' character");
+		return 0;
+		
         // :: :
     case ':':
         d = scc_lex_at(lex,0);
