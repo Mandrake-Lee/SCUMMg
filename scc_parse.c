@@ -417,3 +417,457 @@ printf("NAME found in verb '%s'\n", vst->name->val.s->str);	//MAN
 	
 	return verbcode;
 }
+
+//Goes through all the possible options of the actor statement and build the code
+scc_statement_t* scc_statement_build_actor(scc_parser_t* sccp, scc_symbol_t* asym, scc_actor_statement_t* ast)
+{
+	scc_func_t* f;
+	scc_statement_t *actorcode=NULL, *last=NULL, *stmnt, *a;
+	char* err = NULL;
+
+	//Sanity check
+	if (!asym || !ast)
+		return NULL;
+	
+	//Always set current actor in stack
+	//Create assignment of symbol
+	a = calloc(1,sizeof(scc_statement_t));
+	a->type = SCC_ST_RES;
+	a->val.r = asym;
+	//Create proper call to function
+	stmnt = calloc(1,sizeof(scc_statement_t));
+	stmnt->type = SCC_ST_CALL;
+	stmnt->val.c.func = scc_get_func(sccp,"_setCurrentActor");
+	stmnt->val.c.user_script = 0;
+	stmnt->val.c.argv = a;
+	stmnt->val.c.argc = 1;
+
+	SCC_LIST_ADD(actorcode, last, stmnt);	
+
+	if(ast->name)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorName");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->name;
+		
+		for(a = ast->name ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->stepdistxy)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorTalkPos");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->stepdistxy;
+		
+		for(a = ast->stepdistxy ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->textoffsetxy)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorAnimVar");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->textoffsetxy;
+		
+		for(a = ast->textoffsetxy ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}	
+	if(ast->costsym)
+	{
+		//Create assignment of symbol
+		a = calloc(1,sizeof(scc_statement_t));
+		a->type = SCC_ST_RES;
+		a->val.r = ast->costsym;		
+		
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorCostume");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = a;
+		stmnt->val.c.argc = 1;		
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->isdefault)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_initActor");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = NULL;
+		stmnt->val.c.argc = 0;
+		
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+		/*		
+			Sets the actor command back to the system defaults. This should
+			be used every time a character is inited to prevent attributes from the last
+			character that used that actor number from showing up.
+			These system defaults are:
+			talk-color white
+			elevation 0
+			walk-animation 2
+			stand-animation 3
+			talk-animation 4, 5
+			init-animation 1
+			animation-speed 0
+			scale 255
+			step-dist 8,2
+			width 16
+			follow-boxes
+			text-offset 0,-80
+		*/
+		
+	}
+	if(ast->talkcolor)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorTalkColor");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->talkcolor;
+		
+		for(a = ast->talkcolor ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->animdefault)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorDefaultFrames");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = NULL;
+		stmnt->val.c.argc = 0;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->walkanimation)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorWalkScript");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->walkanimation;
+		
+		for(a = ast->walkanimation ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->standanimation)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorStanding");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->standanimation;
+		
+		for(a = ast->standanimation ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->talkanimation)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorTalkScript");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->talkanimation;
+		
+		for(a = ast->talkanimation ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->initanimation)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorInitFrame");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->initanimation;
+		
+		for(a = ast->initanimation ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->animationspeed)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorAnimSpeed");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->animationspeed;
+		
+		for(a = ast->animationspeed ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->scale)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorScale");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->scale;
+		
+		for(a = ast->scale ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->zclip)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorZClip");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->zclip;
+		
+		for(a = ast->zclip ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->stateboxes)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		switch (ast->stateboxes)
+		{
+			case ACTOR_IGNOREBOXES:
+				stmnt->val.c.func = scc_get_func(sccp,"_setActorIgnoreBoxes");
+				break;
+			case ACTOR_FOLLOWBOXES:
+				stmnt->val.c.func = scc_get_func(sccp,"_setActorFollowBoxes");
+				break;
+			default:
+			/* here should go an error */
+		}
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = NULL;
+		stmnt->val.c.argc = 0;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->width)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorWidth");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->width;
+		
+		for(a = ast->width ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->talkcolor)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorTalkColor");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->talkcolor;
+		
+		for(a = ast->talkcolor ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->specialdraw)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorShadowMode");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->specialdraw;
+		
+		for(a = ast->specialdraw ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->stop)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorStanding");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = NULL;
+		stmnt->val.c.argc = 0;
+		
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->walkpause)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		switch (ast->walkpause)
+		{
+			case ACTOR_WALKPAUSE:
+					stmnt->val.c.func = scc_get_func(sccp,"_actorFreeze");			
+					break;
+			case ACTOR_WALKRESUME:
+					stmnt->val.c.func = scc_get_func(sccp,"_actorUnfreeze");			
+					break;
+			default:
+			//Trigger an error here
+		}
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = NULL;
+		stmnt->val.c.argc = 0;
+		
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}	
+	if(ast->turn)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_actorTurnToDirection");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->turn;
+		
+		for(a = ast->turn ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->face)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorDirection");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->face;
+		
+		for(a = ast->face ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}
+	if(ast->volume|| ast->frequency || ast->pan)
+	{
+		stmnt = calloc(1,sizeof(scc_statement_t));		
+		stmnt->type = SCC_ST_CALL;
+		stmnt->val.c.func = scc_get_func(sccp,"_setActorSounds");
+		stmnt->val.c.user_script = 0;
+		stmnt->val.c.argv = ast->volume;
+		
+		//TODO
+		//Need here to compose an iMUSE cmd
+		
+		for(a = ast->volume ; a ; a = a->next)
+			stmnt->val.c.argc++;
+
+		err = scc_statement_check_func(&stmnt->val.c);
+		if(err)
+			scc_log(LOG_ERR,"%s",err);
+
+		SCC_LIST_ADD(actorcode, last, stmnt);
+	}	
+	return actorcode;
+}

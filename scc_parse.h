@@ -66,7 +66,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 typedef struct scc_parser scc_parser_t;
 
 typedef struct scc_verb_statement_st scc_verb_statement_t;	//Support of verb as single statement
-
+typedef struct scc_actor_statement_st scc_actor_statement_t;	//Support for actor as single statement
 typedef struct scc_decl_st scc_decl_t;	/* Never in use? WOW! */
 
 
@@ -81,7 +81,7 @@ int scc_parser_error(scc_parser_t* sccpr,YYLTYPE *loc, const char *s);  /* Calle
 scc_func_t* scc_get_func(scc_parser_t* p, char* sym);
 char* scc_statement_check_func(scc_call_t* c);
 scc_statement_t* scc_statement_build_verb(scc_parser_t* sccp, scc_symbol_t* vsym, scc_verb_statement_t* vst);
-
+scc_statement_t* scc_statement_build_actor(scc_parser_t* sccp, scc_symbol_t* asym, scc_actor_statement_t* ast);
 /* Macros used exclusively in parse scc_parse.y file */
 #define SCC_BOP(d,bop,a,cop,b) {                              \
   if(a->type == SCC_ST_VAL &&                                 \
@@ -128,6 +128,7 @@ typedef union scc_bison_val_s {
   int* intlist;
   scc_verb_script_t* vscr;
   scc_verb_statement_t* verbst;		//verb as single statement
+  scc_actor_statement_t* actorst;	//actor as single statement
 } scc_bison_val_t;
 
 typedef struct scc_parser {
@@ -155,6 +156,16 @@ enum {
 	VERB_DIM
 };
 
+enum {
+	ACTOR_IGNOREBOXES = 1,
+	ACTOR_FOLLOWBOXES
+};
+
+enum {
+	ACTOR_WALKPAUSE = 1,
+	ACTOR_WALKRESUME
+};
+
 struct scc_verb_statement_st
 {
 	int new;		//In fact it's bool
@@ -164,6 +175,23 @@ struct scc_verb_statement_st
 	scc_statement_t *key;
 	scc_statement_t *image;
 	int state;	//Visual state on/off/dim
+};
+
+struct scc_actor_statement_st
+{
+	scc_symbol_t* costsym;
+	scc_statement_t* name;
+	scc_statement_t *oldcolor, *newcolor, *talkcolor;
+	scc_statement_t *stepdistxy, *textoffsetxy;
+	scc_statement_t *elevation, *zclip, *scale;
+	int animdefault, isdefault;
+	scc_statement_t *walkanimation, *standanimation, *talkanimation, *initanimation;
+	scc_statement_t *animationspeed;
+	int stateboxes;	//ignoreboxes or followboxes
+	scc_statement_t *width, *specialdraw;
+	int stop, walkpause;
+	scc_statement_t *turn, *face;	//In degrees
+	scc_statement_t *volume, *frequency, *pan;
 };
 
 

@@ -314,88 +314,88 @@ const scc_func_t scc_func_v6_v7[] = {
     { SCC_FA_VAL }
   },{
 
-    "setCurrentActor", 0x9DC5, 0, 1, 0,
+    "_setCurrentActor", 0x9DC5, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorCostume", 0x9D4C, 0, 1, 0,
+    "_setActorCostume", 0x9D4C, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorWalkSpeed", 0x9D4D, 0, 2, 0,
+    "_setActorWalkSpeed", 0x9D4D, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "setActorSounds", 0x9D4E, 0, 1, 0,
+    "_setActorSounds", 0x9D4E, 0, 1, 0,
     { SCC_FA_LIST }
   },{
-    "setActorWalkFrame", 0x9D4F, 0, 1, 0,
+    "_setActorWalkFrame", 0x9D4F, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorTalkFrame", 0x9D50, 0, 2, 0,
+    "_setActorTalkFrame", 0x9D50, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "setActorStandFrame", 0x9D51, 0, 1, 0,
+    "_setActorStandFrame", 0x9D51, 0, 1, 0,
     { SCC_FA_VAL }
   },{
 #if 0
     // Dummy func in vm 0.6.1
-    "actorSet", 0x9D52, 0, 3, 0,
+    "_actorSet", 0x9D52, 0, 3, 0,
     { SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL }
   },{
 #endif
-    "initActor", 0x9D53, 0, 0, 0,
+    "_initActor", 0x9D53, 0, 0, 0,
     {}
   },{
-    "setActorElevation", 0x9D54, 0, 1, 0,
+    "_setActorElevation", 0x9D54, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorDefaultFrames", 0x9D55, 0, 0, 0,
+    "_setActorDefaultFrames", 0x9D55, 0, 0, 0,
     {}
   },{
-    "setActorPalette", 0x9D56, 0, 2, 0,
+    "_setActorPalette", 0x9D56, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "setActorTalkColor", 0x9D57, 0, 1, 0,
+    "_setActorTalkColor", 0x9D57, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorName", 0x9D58, 0, 1, 0,
+    "_setActorName", 0x9D58, 0, 1, 0,
     { SCC_FA_STR }
   },{
-    "setActorInitFrame", 0x9D59, 0, 1, 0,
+    "_setActorInitFrame", 0x9D59, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorWidth", 0x9D5B, 0, 1, 0,
+    "_setActorWidth", 0x9D5B, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorScale", 0x9D5C, 0, 1, 0,
+    "_setActorScale", 0x9D5C, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "actorNeverZClip", 0x9D5D, 0, 0, 0,
+    "_actorNeverZClip", 0x9D5D, 0, 0, 0,
     {}
   },{
-    "setActorZClip", 0x9DE1, 0, 1, 0,
+    "_setActorZClip", 0x9DE1, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorIgnoreBoxes", 0x9D5F, 0, 0, 0,
+    "_setActorIgnoreBoxes", 0x9D5F, 0, 0, 0,
     {}
   },{
-    "setActorFollowBoxes", 0x9D60, 0, 0, 0,
+    "_setActorFollowBoxes", 0x9D60, 0, 0, 0,
     {}
   },{
-    "setActorAnimSpeed", 0x9D61, 0, 1, 0,
+    "_setActorAnimSpeed", 0x9D61, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorShadowMode", 0x9D62, 0, 1, 0,
+    "_setActorShadowMode", 0x9D62, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorTalkPos", 0x9D63, 0, 2, 0,
+    "_setActorTalkPos", 0x9D63, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "setActorAnimVar", 0x9DC6, 0, 2, 0,
+    "_setActorAnimVar", 0x9DC6, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "setActorIgnoreTurnsOn", 0x9DD7, 0, 0, 0,
+    "_setActorIgnoreTurnsOn", 0x9DD7, 0, 0, 0,
     {}
   },{
-    "setActorIgnoreTurnsOff", 0x9DD8, 0, 0, 0,
+    "_setActorIgnoreTurnsOff", 0x9DD8, 0, 0, 0,
     {}
   },{
     "initActorQuick", 0x9DD9, 0, 0, 0,
@@ -406,25 +406,25 @@ const scc_func_t scc_func_v6_v7[] = {
     {}
   },{
 #endif
-    "setActorLayer", 0x9DE3, 0, 1, 0,
+    "_setActorLayer", 0x9DE3, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorWalkScript", 0x9DE4, 0, 1, 0,
+    "_setActorWalkScript", 0x9DE4, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "setActorStanding", 0x9DE5, 0, 0, 0,
+    "_setActorStanding", 0x9DE5, 0, 0, 0,
     {}
   },{
-    "setActorDirection", 0x9DE6, 0, 1, 0,
+    "_setActorDirection", 0x9DE6, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "actorTurnToDirection", 0x9DE7, 0, 1, 0,
+    "_actorTurnToDirection", 0x9DE7, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "actorFreeze", 0x9DE9, 0, 0, 0,
+    "_actorFreeze", 0x9DE9, 0, 0, 0,
     {}
   },{
-    "actorUnfreeze", 0x9DEA, 0, 0, 0,
+    "_actorUnfreeze", 0x9DEA, 0, 0, 0,
     {}
   },{
     "setActorTalkScript", 0x9DEB, 0, 1, 0,

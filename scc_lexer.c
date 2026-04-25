@@ -29,62 +29,89 @@
 // List of all the keywords
 // it must be kept sorted bcs a binary search is used on it
 static scc_keyword_t scc_keywords[] = {
-	{ "actor",      ACTOR,     -1 },				//SCUMM
-	{ "at",			AT,			-1},				//SCUMM
-	{ "bakcolor",	BAKCOLOR,	-1},				//SCUMM
-	{ "bit",        TYPE,      SCC_VAR_BIT },
-	{ "bit-variable",TYPE,		SCC_VAR_BIT },		//SCUMM
-	{ "break",      BRANCH,    SCC_BRANCH_BREAK },
-	{ "byte",       TYPE,      SCC_VAR_BYTE },
+	{ "actor",			ACTOR,     -1 },				//SCUMM
+	{ "animation",		ANIMATION,	-1 },				//SCUMM	
+	{ "animation-speed",ANIMATION_SPEED,	-1 },				//SCUMM		
+	{ "at",				AT,			-1},				//SCUMM
+	{ "bakcolor",		BAKCOLOR,	-1},				//SCUMM
+	{ "bit",        	TYPE,      SCC_VAR_BIT },
+	{ "bit-variable",	TYPE,		SCC_VAR_BIT },		//SCUMM
+	{ "break",      	BRANCH,    SCC_BRANCH_BREAK },
+	{ "byte",       	TYPE,      SCC_VAR_BYTE },
 //	{ "case",       CASE,      -1 },
-	{ "case",       SWITCH,		-1 },	
-	{ "center",     CENTER,		-1 },
-	{ "color",      COLOR,		-1 },					//SCUMM
-	{ "char",       TYPE,      SCC_VAR_CHAR },
-	{ "chset",      RESTYPE,   SCC_RES_CHSET },
-	{ "class",      CLASS,     -1 },
-	{ "continue",   BRANCH,    SCC_BRANCH_CONTINUE },
-	{ "cost",       RESTYPE,   SCC_RES_COST },
-	{ "cutscene",   CUTSCENE,  -1 },
-	{ "cycle",      CYCL,      -1 },
-	{ "default",    DEFAULT,   -1 },
-	{ "dim",	    DIM,		-1 },					//SCUMM
-	{ "dimcolor",   DIMCOLOR,	-1 },
-	{ "do",         DO,        -1 },
-	{ "else",       ELSE,      -1 },
-	{ "enter",		ENTER,		-1},					//SCUMM
-	{ "exit",		EXIT,		-1},					//SCUMM
-	{ "for",        FOR,       -1 },				
-	{ "global",     SCRTYPE,   SCC_RES_SCR },
-	{ "hicolor",    HICOLOR,   -1},						//SCUMM
-	{ "if",         IF,        0 },
-	{ "image",		IMAGE,		-1 },					//SCUMM
-	{ "int",        TYPE,      SCC_VAR_WORD },
-	{ "is",         IS,        -1 },
-	{ "key",        KEY,        -1 },
-	{ "local",      SCRTYPE,   SCC_RES_LSCR },
-	{ "name",		NAME,		-1 },					//SCUMM
-	{ "new",		NEW,		-1 },					//SCUMM
-	{ "nibble",     TYPE,      SCC_VAR_NIBBLE },
-	{ "object",     OBJECT,    -1 },
-	{ "of",			CASE,		-1},					//SCUMM
-	{ "off",		OFF,		-1},					//SCUMM
-	{ "on",			ON,			-1},					//SCUMM
-	{ "override",   OVERRIDE,  -1 },
-	{ "return",     RETURN,    SCC_BRANCH_RETURN },
-	{ "room",       ROOM,      -1 },
-	{ "script",     SCRIPT,    -1 },
-	{ "sound",      RESTYPE,   SCC_RES_SOUND },
-	{ "switch",     SWITCH,    -1 },
-	{ "to",         TO,        -1 },					//SCUMM
-	{ "try",        TRY,       -1 },
-	{ "unless",     IF,        1 },
-	{ "until",      WHILE,     1 },						//SCUMM
-	{ "variable",	TYPE,		SCC_VAR_BYTE },			//SCUMM	
-	{ "verb",       VERB,     -1 },
-	{ "voice",      VOICE,     -1 },
-	{ "while",      WHILE,     0 },
-	{ "word",       TYPE,      SCC_VAR_WORD },
+	{ "case",       	SWITCH,		-1 },	
+	{ "center",     	CENTER,		-1 },
+	{ "color",      	COLOR,		-1 },					//SCUMM
+	{ "costume",		COSTUME,	-1 },					//SCUMM
+	{ "char",       	TYPE,      SCC_VAR_CHAR },
+	{ "chset",      	RESTYPE,   SCC_RES_CHSET },
+	{ "class",      	CLASS,     -1 },
+	{ "continue",   	BRANCH,    SCC_BRANCH_CONTINUE },
+	{ "cost",       	RESTYPE,   SCC_RES_COST },
+	{ "cutscene",   	CUTSCENE,  -1 },
+	{ "cycle",      	CYCL,      -1 },
+	{ "default",    	DEFAULT,   -1 },
+	{ "dim",	    	DIM,		-1 },					//SCUMM
+	{ "dimcolor",		DIMCOLOR,	-1 },
+	{ "do",         	DO,        -1 },
+	{ "elevation",		ELEVATION,	-1 },					//SCUMM
+	{ "else",       	ELSE,      -1 },
+	{ "enter",			ENTER,		-1},					//SCUMM
+	{ "exit",			EXIT,		-1},					//SCUMM
+	{ "face",			FACE,		-1 },					//SCUMM	
+	{ "follow-boxes",	FOLLOW_BOXES,	-1 },				//SCUMM
+	{ "for",        	FOR,       -1 },			
+	{ "frequency",		FREQUENCY,				-1 },	
+	{ "global",     	SCRTYPE,   SCC_RES_SCR },
+	{ "hicolor",    	HICOLOR,   -1},						//SCUMM
+	{ "if",         	IF,        0 },
+	{ "ignore-boxes",	IGNORE_BOXES,	-1 },				//SCUMM
+	{ "image",			IMAGE,		-1 },					//SCUMM
+	{ "init-animation",	INIT_ANIMATION,	-1},			//SCUMM
+	{ "int",        	TYPE,      SCC_VAR_WORD },
+	{ "is",         	IS,        -1 },
+	{ "key",        	KEY,        -1 },
+	{ "local",      	SCRTYPE,   SCC_RES_LSCR },
+	{ "name",			NAME,		-1 },					//SCUMM
+	{ "new",			NEW,		-1 },					//SCUMM
+	{ "nibble",     	TYPE,      SCC_VAR_NIBBLE },
+	{ "object",     	OBJECT,    -1 },
+	{ "of",				CASE,		-1},					//SCUMM
+	{ "off",			OFF,		-1},					//SCUMM
+	{ "on",				ON,			-1},					//SCUMM
+	{ "override",   	OVERRIDE,  -1 },
+	{ "pan",			PAN,				-1},			//SCUMM	
+	{ "return",    		RETURN,    SCC_BRANCH_RETURN },
+	{ "room",       	ROOM,      -1 },
+	{ "scale",			SCALE,		-1 },	//SCUMM	
+	{ "script",     	SCRIPT,    -1 },
+	{ "special-draw",	SPECIAL_DRAW,		-1},			//SCUMM
+	{ "sound",      	RESTYPE,   SCC_RES_SOUND },
+	{ "stand-animation",STAND_ANIMATION,	-1 },	//SCUMM
+	{ "step-dist",		STEP_DIST,	-1 },					//SCUMM	
+	{ "stop",			STOP,		-1 },					//SCUMM	
+	{ "switch",     	SWITCH,    -1 },
+	{ "talk-color",		TALK_COLOR,-1 },					//SCUMM
+	{ "text-offset",	TEXT_OFFSET,-1 },					//SCUMM	
+	{ "to",         	TO,        -1 },					//SCUMM
+//	{ "to-boxes",		TO_BOXES,	-1 },					//SCUMM		//These are #define in fact
+//	{ "to-nothing",		TO_NOTHING,	-1 },					//SCUMM
+//	{ "to-zclip1",		TO_ZCLIP1,	-1 },					//SCUMM	
+	{ "try",        	TRY,       -1 },
+	{ "turn",			TURN,       -1 },					//SCUMM
+	{ "unless",     	IF,        1 },
+	{ "until",      	WHILE,     		1 },						//SCUMM
+	{ "variable",		TYPE,			SCC_VAR_BYTE },			//SCUMM	
+	{ "verb",       	VERB,     		-1 },
+	{ "voice",      	VOICE,     		-1 },
+	{ "volume",			VOLUME,			-1 },	
+	{ "walk-animation",	WALK_ANIMATION,	-1 },		//SCUMM
+	{ "walk-pause",		WALK_PAUSE,		-1 },		//SCUMM	
+	{ "walk-resume",	WALK_RESUME,	-1 },		//SCUMM		
+	{ "while",      	WHILE,     0 },
+	{ "width",			WIDTH,		-1 },		//SCUMM		
+	{ "word",       	TYPE,      SCC_VAR_WORD },
+	{ "zclip",			ZCLIP,		-1 },		//SCUMM	
 	{ NULL, -1, -1 },
 };
 
