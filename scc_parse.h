@@ -80,8 +80,9 @@ scc_parser_t* scc_parser_new(char** include, char** res_path,
 int scc_parser_error(scc_parser_t* sccpr,YYLTYPE *loc, const char *s);  /* Called by yyparse on error */
 scc_func_t* scc_get_func(scc_parser_t* p, char* sym);
 char* scc_statement_check_func(scc_call_t* c);
-scc_statement_t* scc_statement_build_verb(scc_parser_t* sccp, scc_symbol_t* vsym, scc_verb_statement_t* vst);
-scc_statement_t* scc_statement_build_actor(scc_parser_t* sccp, scc_symbol_t* asym, scc_actor_statement_t* ast);
+
+scc_instruct_t* scc_statement_build_verb(scc_parser_t* sccp, scc_symbol_t* vsym, scc_verb_statement_t* vst);
+scc_instruct_t* scc_statement_build_actor(scc_parser_t* sccp, scc_symbol_t* asym, scc_actor_statement_t* ast);
 /* Macros used exclusively in parse scc_parse.y file */
 #define SCC_BOP(d,bop,a,cop,b) {                              \
   if(a->type == SCC_ST_VAL &&                                 \

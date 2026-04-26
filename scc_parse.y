@@ -201,7 +201,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <verbst> verb_options
 %type <st> statements
 %type <st> opt_statements
-%type <st> verb_statement
+%type <inst> verb_statement
 %type <inst> instruct
 %type <inst> ifblock
 %type <integer> for_ops		//Actually returning INC or DEC
@@ -231,7 +231,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <strlist> verb_header
 %type <sym> actor_header
 %type <actorst> actor_options
-%type <st> actor_statement
+%type <inst> actor_statement
 
 %type <integer> gvardecl
 %type <integer> gresdecl
@@ -1924,15 +1924,11 @@ oneinstruct: statements
 }
 	| verb_statement
 	{
-		$$ = calloc(1,sizeof(scc_instruct_t));
-		$$->type = SCC_INST_ST;
-		$$->pre = $1;
+		$$ = $1;
 	}
 	| actor_statement
 	{
-		$$ = calloc(1,sizeof(scc_instruct_t));
-		$$->type = SCC_INST_ST;
-		$$->pre = $1;
+		$$ = $1;
 	}	
 	;
 
@@ -2874,8 +2870,8 @@ verb_statement
 	: verb_header verb_options
 	{
 		//Here we will join all the different opcodes for the verb statement
-		scc_symbol_t *v, *l;
-		scc_statement_t *src=NULL, *last=NULL, *st;
+		scc_symbol_t *v, *l, *cur;
+		scc_instruct_t *src=NULL, *last=NULL, *inst;
 		scc_verb_statement_t* verbst=$2;
 		scc_func_t* f;
 		char** array = $1;
@@ -2885,14 +2881,20 @@ verb_statement
 		for (array=$1;*array;array++)
 		{
 			verbsym = *array;
-			printf("checking %s\n", verbsym);	//MAN
 			v = scc_ns_get_sym(sccp->ns,NULL,verbsym);
+
 			if(!v)
 			{
 				if(!verbst->new)
 					{SCC_ABORT(@1,"'%s' is not a declared verb.\n",verbsym);}
 				else
+				{	
+					//This is a hack to set true global symbols
+					cur = sccp->ns->cur;
+					sccp->ns->cur = NULL;
 					v = scc_ns_decl(sccp->ns, NULL, verbsym, SCC_RES_VERB, 0, -1);
+					sccp->ns->cur = cur;
+				}
 			}
 			if(v->type != SCC_RES_VERB)
 				SCC_ABORT(@1,"%s is not a verb in the current context.\n",verbsym);
@@ -2905,14 +2907,14 @@ verb_statement
 		for (array=$1;*array;array++)
 		{
 			verbsym = *array;
-			v = scc_ns_get_sym(sccp->ns,NULL,verbsym);		
-			st = scc_statement_build_verb(sccp, v, verbst);
 
-			if(!st)
+			v = scc_ns_get_sym(sccp->ns,NULL,verbsym);		
+			inst = scc_statement_build_verb(sccp, v, verbst);
+
+			if(!inst)
 				SCC_ABORT(@1, "Why this is null?");
 
-			SCC_LIST_ADD(src, last, st);
-
+			SCC_LIST_ADD(src, last, inst);
 		}
 	
 		$$ = src;
@@ -3109,7 +3111,7 @@ actor_statement
 		scc_actor_statement_t *actorop = $2;
 		scc_symbol_t* actorsym = $1;
 
-		st = scc_statement_build_verb(sccp, actorsym, actorop);
+		st = scc_statement_build_actor(sccp, actorsym, actorop);
 
 		if(!st)
 			SCC_ABORT(@1, "Why this is null?");
