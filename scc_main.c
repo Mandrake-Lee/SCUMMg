@@ -51,6 +51,21 @@ static scc_param_t scc_parse_params[] = {
   { NULL, 0, 0, 0, NULL }
 };
 
+//Append a new string to a NULL terminated string array
+char** appendString(char** array, const char* string)
+{
+	char** a;
+	int i=0;
+	
+	for (a=array;a;i++,a++);	//Go the end of the NULL terminated array
+	
+	array = realloc(array, (i+2)*sizeof(char*));
+	*(array+i) = strdup(string);
+	*(array+i+1) = NULL;
+	
+	return array;
+}
+
 
 int main (int argc, char** argv) {
 	scc_cl_arg_t* files,*f;
@@ -67,6 +82,9 @@ int main (int argc, char** argv) {
 	files = scc_param_parse_argv(scc_parse_params,argc-1,&argv[1]);
 
 	if(!files) scc_print_help(&scc_help,1);
+
+	//By default, add as resource path the location of the .scu file we're compiling
+	scc_res_path = appendString(scc_res_path, dirname(realpath(files->val, NULL)));
 
 	/* Experimental preprocessor enabled by default */
 	if (!less_pp){
