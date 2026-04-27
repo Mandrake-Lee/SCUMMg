@@ -121,6 +121,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token VOICE
 %token CYCL
 
+%token FLEM			//Extended SCUMM language to fit room command lines
+
 %token NAME		//Used for objects
 /* This chunk below for verb options */
 %token NEW
@@ -761,7 +763,8 @@ roombodyentry2
 		// add the obj to the room
 		scc_roobj_add_obj(sccp->roobj,sccp->obj);
 		sccp->obj = NULL;
-	}	
+	}
+	| flem_block
 	;
 
 /*	
@@ -1089,6 +1092,61 @@ roomobjdecl2
 
 		sccp->obj = scc_roobj_obj_new(sym);
 		$$ = sym;
+	}
+	;
+
+
+flem_header
+	: FLEM open_block
+	;
+
+flem_block
+	: flem_header flemdecls close_block
+	;
+
+flemdecls
+	: flemdecl NEWLINE
+	| flemdecls flemdecl NEWLINE
+
+flemdecl
+	: IMAGE ASSIGN STRING
+	{
+		if($2 != '=')
+			SCC_ABORT(@2,"Invalid operator for parameter setting.\n");
+
+		scc_parser_find_res(sccp,&$3);
+		
+		if(!scc_roobj_set_param(sccp->roobj,sccp->ns,"image",$3))
+			SCC_ABORT(@1,"Failed to set room %s.\n","image");
+
+		// add dep
+		if(sccp->do_deps) scc_parser_add_dep(sccp,$3);
+	}	
+	| SYM ASSIGN '{' zbufs '}'
+	{
+		int i;
+		if($2 != '=')
+			SCC_ABORT(@2,"Invalid operator for parameter setting.\n");
+
+		for(i = 0 ; $4[i] ; i++) {
+			if($4[i][0] == '\0')
+				continue;
+			if(!scc_roobj_set_zplane(sccp->roobj,i+1,$4[i]))
+				SCC_ABORT(@1,"Failed to set room zplane %d.\n",i+1);
+		}
+	}
+	| SYM ASSIGN INTEGER
+	{
+		if($2 != '=')
+			SCC_ABORT(@2,"Invalid operator for parameter setting.\n");
+
+		if(strcmp($1,"trans"))
+			SCC_ABORT(@1,"Rooms have no parameter named %s.\n",$1);
+
+		if($3 < 0 || $3 > 255)
+			SCC_ABORT(@3,"Invalid transparent color index: %d\n",$3);
+
+		sccp->roobj->trans = $3;
 	}
 	;
 

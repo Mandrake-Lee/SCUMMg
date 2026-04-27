@@ -58,7 +58,8 @@ static scc_keyword_t scc_keywords[] = {
 	{ "else",       	ELSE,      -1 },
 	{ "enter",			ENTER,		-1},					//SCUMM
 	{ "exit",			EXIT,		-1},					//SCUMM
-	{ "face",			FACE,		-1 },					//SCUMM	
+	{ "face",			FACE,		-1 },					//SCUMM
+	{ "flem",			FLEM,		-1 },					//ADDITION
 	{ "follow-boxes",	FOLLOW_BOXES,	-1 },				//SCUMM
 	{ "for",        	FOR,       -1 },			
 	{ "frequency",		FREQUENCY,				-1 },	
