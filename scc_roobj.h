@@ -32,6 +32,7 @@
 #include "scc_cost.h"
 #include "scc.h"
 #include "scc_img.h"
+#include "scc_box.h"
 
 #include <stdint.h>
 
@@ -184,6 +185,8 @@ scc_roobj_res_t* scc_roobj_add_res(scc_roobj_t* ro,scc_symbol_t* sym,
 int scc_roobj_set_param(scc_roobj_t* ro,scc_ns_t* ns,char* p, char* val);
 
 int scc_roobj_set_zplane(scc_roobj_t* ro, int idx,char* file);
+
+void scc_roobj_create_boxd(scc_roobj_t* ro, scc_box_t* boxlist);
 
 int scc_roobj_add_voice(scc_roobj_t* ro, scc_symbol_t* sym, char* file,
                         int nsync, int* sync);

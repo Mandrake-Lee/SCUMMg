@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  */
+#ifndef SCC_BOX_H
+#define SCC_BOX_H
 
 /**
  * @file scc_box.h
@@ -60,3 +62,7 @@ scc_box_t* scc_boxes_adjust_point(scc_box_t* box,int x, int y,
 
 long long scc_box_adjust_point(scc_box_t* b,int x, int y,
                                int* dst_x, int* dst_y);
+
+int scc_boxes_arrangedata(scc_box_t* boxes);
+
+#endif

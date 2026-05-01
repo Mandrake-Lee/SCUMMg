@@ -51,6 +51,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 #include "scc_ns.h"
 #include "scc_lexer.h"
 
+
 #define YYERROR_VERBOSE 1
 
 #define sccp ((scc_parser_t*)v_sccp)
@@ -267,6 +268,9 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <integer> typemod
 %type <integer> natural
 
+%type <box> box_declaration box_single box_list box_points
+%type <intpair> numberpair
+%type <integer> number
 %%
 
 /*
@@ -1147,6 +1151,90 @@ flemdecl
 			SCC_ABORT(@3,"Invalid transparent color index: %d\n",$3);
 
 		sccp->roobj->trans = $3;
+	}
+	| SYM ASSIGN box_declaration
+	{
+		scc_box_t *box = $3, *next=NULL;
+		
+		if($2 != '=')
+			SCC_ABORT(@2,"Invalid operator for parameter setting.\n");
+
+		if(sccp->roobj->boxd)
+			SCC_ABORT(@2,"Double declaration of 'box'.\n");
+
+		scc_boxes_arrangedata(box);
+		scc_roobj_create_boxd(sccp->roobj, box);
+		SCC_LIST_FREE(box, next);
+	}
+	;
+
+box_declaration
+	:box_single
+	{
+		$$ = $1;
+	}
+	| '{' box_list '}'
+	{
+		$$ = $2;
+	}
+	;
+
+box_list
+	: box_single
+	{
+		$$=$1;
+	}
+	| box_list ',' box_single
+	{
+		$3->next = $1;
+		$$ = $3;
+	}
+
+/* A boxd has points + mask + flags + scale */
+box_single: '{' box_points ',' INTEGER ',' INTEGER ',' INTEGER'}'
+	{
+		$$ = $2;
+		$$->mask = $4;
+		$$->flags = $6;
+		$$->scale = $8;
+	}
+	;
+
+box_points
+	: /* empty */
+	{
+		$$ = calloc(1, sizeof(scc_box_t));
+	}
+	| box_points numberpair
+	{
+//		scc_box_t *box;
+//		box = calloc(1, sizeof(scc_box_t));
+		scc_box_add_pts ($1, $2[0], $2[1]);
+		$$ = $1;
+	}
+	| box_points ',' numberpair
+	{
+		scc_box_t *box = $1;
+		scc_box_add_pts (box, $3[0], $3[1]);
+		$$ = box;
+	}
+	;
+
+numberpair: '{' number ',' number '}'
+	{
+		$$[0] = $2;
+		$$[1] = $4;
+	}
+	;
+
+number: INTEGER
+	| '-' INTEGER
+	{
+		$$ = - $2;
+	}
+	| '+' INTEGER
+	{
+		$$ = $2;
 	}
 	;
 

@@ -112,7 +112,11 @@ scc_SRCS=                       \
 	scc_func.c				\
 	tinycpp/preproc.c		\
 	tinycpp/tokenizer.c		\
+	scc_box.c				\
 	scc_main.c		        \
+
+#This line to be removed after debugging
+scc_CFLAGS = -fsanitize=address -fsanitize=leak -fno-omit-frame-pointer
 
 ifdef MINGW
 scc_SRCS += fmemopen_windows/libfmemopen.c	\

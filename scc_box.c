@@ -288,3 +288,64 @@ scc_box_t* scc_boxes_adjust_point(scc_box_t* box,int x, int y,
   *dst_y = dst.y;
   return dst_box;
 }
+
+//Code migrated from boxedit
+//Prepare the order of the points to be written on disk
+int scc_boxes_arrangedata(scc_box_t* boxes)
+{
+	scc_box_t* box;
+	int i,j,up,up2;
+	int points[4][2];
+	
+	if (!boxes)
+		return -1;
+	
+	for(box = boxes ; box ; box = box->next)
+	{
+		// find the top point
+		up = 0;
+		for(i = 1 ; i < box->npts ; i++)
+			if(box->pts[i].y < box->pts[up].y) up = i;
+		// find the 2 top point
+		up2 = -1;
+		for(i = 0 ; i < box->npts ; i++)
+		{
+			if(i == up) continue;
+			if(up2 == -1 || box->pts[i].y < box->pts[up2].y) up2 = i;
+		}
+		// take the leftest, note that if both are equal we still keep the
+		// highest
+		if(box->pts[up2].x < box->pts[up].x) up = up2;
+
+		if(box->npts == 2)
+		{
+			for(i = 0 ; i < 2 ; i++)
+			{
+				points[i][0] = box->pts[up].x;
+				points[i][1] = box->pts[up].y;
+			}
+			up = (up+1)%box->npts;
+			for(i = 0 ; i < 2 ; i++)
+			{
+				points[i+2][0] = box->pts[up].x;
+				points[i+2][1] = box->pts[up].y;				
+			}
+		}
+		else
+		{
+			for(i = up ; i < up + 4 ; i++)
+			{
+				points[i-up][0] = box->pts[i%box->npts].x;
+				points[i-up][1] = box->pts[i%box->npts].y;				
+			}
+		}
+	
+		//Now overwrite values
+		for(i=0;i<4;i++)
+		{
+			box->pts[i].x = points[i][0];
+			box->pts[i].y = points[i][1];
+		}
+	}
+	return 1;
+}

@@ -45,6 +45,7 @@
 #include "scc_target.h"
 #include "scc_lexer.h"
 #include "scc_util.h"
+#include "scc_box.h"
 
 /// @name Variable type
 //@{
@@ -127,9 +128,11 @@ typedef union scc_bison_val_s {
   scc_script_t* scr;
   scc_str_t* strvar;
   int* intlist;
+  int intpair[2];					//Hold x,y duples
   scc_verb_script_t* vscr;
   scc_verb_statement_t* verbst;		//verb as single statement
   scc_actor_statement_t* actorst;	//actor as single statement
+  scc_box_t* box;					//box single or list
 } scc_bison_val_t;
 
 typedef struct scc_parser {

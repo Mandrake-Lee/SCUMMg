@@ -64,6 +64,7 @@ struct {
   { "boxd", scc_roobj_set_boxd },
   { "boxm", scc_roobj_set_boxm },
   { "scal", scc_roobj_set_scal },
+  { "box", scc_roobj_create_boxd },  
   { NULL, NULL }
 };
 
@@ -521,6 +522,51 @@ static int scc_roobj_set_data_param(scc_data_t** ptr,char* name,char* val) {
   ptr[0] = scc_data_load(val);
 
   return (ptr[0] ? 1 : 0);
+}
+
+//Translate from box struct to internal room boxd format
+void scc_roobj_create_boxd(scc_roobj_t* ro, scc_box_t* boxlist)
+{
+	scc_box_t *box;
+	scc_boxd_t* boxes=NULL,*last=NULL,*b;
+	int i=0;
+	
+	//Strange box 0
+	b = malloc(sizeof(scc_boxd_t));
+	b->next = NULL;
+	b->ulx = -32000;
+	b->uly = -32000;
+	b->urx = -32000;
+	b->ury = -32000;
+	b->lrx = -32000;
+	b->lry = -32000;
+	b->llx = -32000;
+	b->lly = -32000;
+	b->mask = 0;
+	b->flags = 0;
+	b->scale = 255;
+
+	boxes = b;	//Start list
+	for (box=boxlist;box; box=box->next,i++)
+	{
+		b = malloc(sizeof(scc_boxd_t));
+		b->next = NULL;
+		b->ulx = box->pts[0].x;
+		b->uly = box->pts[0].y;
+		b->urx = box->pts[1].x;
+		b->ury = box->pts[1].y;
+		b->lrx = box->pts[2].x;
+		b->lry = box->pts[2].y;
+		b->llx = box->pts[3].x;
+		b->lly = box->pts[3].y;
+		b->mask = box->mask;
+		b->flags = box->flags;
+		b->scale = box->scale;			
+	
+	    SCC_LIST_ADD(boxes,last,b);
+	}
+	//Attach result to room
+	ro->boxd = boxes;
 }
 
 static int scc_roobj_set_boxd(scc_roobj_t* ro,scc_ns_t* ns,char* path) {
