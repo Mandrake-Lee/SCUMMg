@@ -349,3 +349,21 @@ int scc_boxes_arrangedata(scc_box_t* boxes)
 	}
 	return 1;
 }
+
+int scc_boxm_size_from_matrix(uint8_t* matrix,int size) {
+	int i,j,pos = 0;
+
+	for(i = 0 ; i < size ; i++) {
+		pos++;
+		for(j = 0 ; j < size ; j++) {
+			uint8_t v = matrix[i*size+j];
+			if(v == 255)
+				continue;
+			while(j < size-1 && v == matrix[j])
+				j++;
+			pos += 3;
+		}
+	}
+	pos++;
+	return pos;
+}

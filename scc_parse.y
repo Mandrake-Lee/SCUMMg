@@ -1155,6 +1155,8 @@ flemdecl
 	| SYM ASSIGN box_declaration
 	{
 		scc_box_t *box = $3, *next=NULL;
+		uint8_t* boxm;
+		int len;
 		
 		if($2 != '=')
 			SCC_ABORT(@2,"Invalid operator for parameter setting.\n");
@@ -1164,6 +1166,17 @@ flemdecl
 
 		scc_boxes_arrangedata(box);
 		scc_roobj_create_boxd(sccp->roobj, box);
+		
+		//Now create boxm & attach to room
+		len = scc_box_get_matrix(box, &boxm);
+		sccp->roobj->boxmrawsize = scc_boxm_size_from_matrix(boxm, len);
+
+		//Hack: null terminate the boxm array
+		boxm = realloc(boxm, (len*len +1)*sizeof(uint8_t));
+		boxm[len*len]=NULL;
+		sccp->roobj->boxmrawdata = boxm;
+
+		//Clean
 		SCC_LIST_FREE(box, next);
 	}
 	;

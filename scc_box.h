@@ -64,5 +64,5 @@ long long scc_box_adjust_point(scc_box_t* b,int x, int y,
                                int* dst_x, int* dst_y);
 
 int scc_boxes_arrangedata(scc_box_t* boxes);
-
+int scc_boxm_size_from_matrix(uint8_t* matrix,int size);	//Copied from boxedit
 #endif

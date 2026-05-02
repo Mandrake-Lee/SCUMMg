@@ -610,6 +610,31 @@ int scc_write_boxm(scc_fd_t* fd,uint8_t ** m) {
   return 1;
 }
 
+//data is one dimensional array null terminated, containing a square matrix
+//optionally give dimension of the matrix or -1 to autodetect
+int scc_write_boxmrawdata(scc_fd_t* fd, uint8_t *m, int dim) {
+  int num,i,j;
+  
+  num = dim;
+  if (dim<0)
+	for(num = 1 ; m[num*num] ; num++); num++;
+
+  for(i = 0 ; i < num ; i++) {
+    for(j = 0 ; j < num ; j++) {
+      int d = m[i*num+j];
+      if(d == 0xFF) continue;
+      scc_fd_w8(fd,j);
+      while(j+1 < num && m[i*num+j+1] == d) j++;
+      scc_fd_w8(fd,j);
+      scc_fd_w8(fd,d);
+    }
+    scc_fd_w8(fd,0xFF);
+  }
+
+  return 1;
+}
+
+
 int scc_write_room(scc_fd_t* fd,scc_room_t* room) {
   
   // Room header

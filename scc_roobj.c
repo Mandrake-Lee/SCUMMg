@@ -115,6 +115,7 @@ void scc_roobj_free(scc_roobj_t* ro) {
     if(ro->zplane[i]) scc_img_free(ro->zplane[i]);
   SCC_LIST_FREE(ro->boxd,box);
   if(ro->boxm) free(ro->boxm);
+  if(ro->boxmrawdata) free(ro->boxmrawdata);
   if(ro->scal) free(ro->scal);
   free(ro);
 }
@@ -568,6 +569,26 @@ void scc_roobj_create_boxd(scc_roobj_t* ro, scc_box_t* boxlist)
 	//Attach result to room
 	ro->boxd = boxes;
 }
+
+/*
+//Create dataformat BOXM from a list of boxes
+//Code taken from boxedit.c
+void scc_roobj_create_boxm(scc_roobj_t* ro, scc_box_t* boxlist)
+{
+	int len, size;
+	uint8_t *boxmdata;
+	scc_data_t* boxm;
+	
+	// boxm generation
+	len = scc_box_get_matrix(boxlist, &boxmdata);
+	size = scc_boxm_size_from_matrix(boxm,len) + 8;	//Add header too
+	
+	//Create data
+	boxm = calloc(1, sizeof(scc_data_t));
+	
+
+}
+*/
 
 static int scc_roobj_set_boxd(scc_roobj_t* ro,scc_ns_t* ns,char* path) {
   scc_fd_t* fd;
@@ -1551,10 +1572,12 @@ int scc_roobj_write(scc_roobj_t* ro, scc_ns_t* ns, scc_fd_t* fd) {
   else
     size += 8 + scc_boxd_size(ro->boxd);
   // BOXM
-  if(!ro->boxm)
-    size += 8 + 8;
+  if (ro->boxmrawdata)
+	size += 8+ ro->boxmrawsize;
+  else if(ro->boxm)
+	size += ro->boxm->size;
   else
-    size += ro->boxm->size;
+	size += 8 + 8;
   // SCAL
   if(!ro->scal)
     size += 8 + 20;
@@ -1654,6 +1677,12 @@ int scc_roobj_write(scc_roobj_t* ro, scc_ns_t* ns, scc_fd_t* fd) {
   // BOXM
   if(ro->boxm)
     scc_fd_write(fd,ro->boxm->data,ro->boxm->size);
+	if (ro->boxmrawdata)
+	{
+		scc_fd_w32(fd,MKID('B','O','X','M'));
+		scc_fd_w32be(fd,8 + ro->boxmrawsize);
+		scc_write_boxmrawdata(fd, &ro->boxmrawdata,-1);
+	}
   else {
     scc_fd_w32(fd,MKID('B','O','X','M'));
     scc_fd_w32be(fd,8 + 8);

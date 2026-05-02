@@ -152,6 +152,8 @@ struct scc_roobj_st {
 	scc_boxd_t* boxd;
 	/// Box matrix
 	scc_data_t* boxm;
+	uint8_t* boxmrawdata;	//The matrix
+	int boxmrawsize;		//The size of the matrix
 	/// Scaling slots
 	scc_data_t* scal;
 };
