@@ -30,11 +30,13 @@ typedef struct scc_box_pts_st {
 } scc_box_pts_t;
 
 typedef struct scc_scale_slot_st {
-  int s1,y1;
-  int s2,y2;
+	struct scc_scale_slot_st* next;
+	int s1,y1;
+	int s2,y2;
 } scc_scale_slot_t;
 
 #define SCC_BOX_INVISIBLE 0x80
+#define SCC_NUM_SCALE_SLOT 4
 
 typedef struct scc_box_st scc_box_t;
 struct scc_box_st {

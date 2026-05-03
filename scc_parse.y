@@ -269,6 +269,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <integer> natural
 
 %type <box> box_declaration box_single box_list box_points
+%type <scal> scal_declaration scal_single scal_list
 %type <intpair> numberpair
 %type <integer> number
 %%
@@ -1179,6 +1180,16 @@ flemdecl
 		//Clean
 		SCC_LIST_FREE(box, next);
 	}
+	| SCALE ASSIGN scal_declaration
+	{
+		scc_scale_slot_t* scaleslot = $3;
+		int i=0;
+		
+//		for(i=0; scaleslot->next; scaleslot = scaleslot->next,i++);
+//		printf ("Found %d scales\n", i+1);
+
+		sccp->roobj->scalelist = $3;
+	}
 	;
 
 box_declaration
@@ -1251,7 +1262,51 @@ number: INTEGER
 	}
 	;
 
+scal_declaration
+	: scal_single
+	{
+		$$ = $1;
+	}
+	| '{' scal_list '}'
+	{
+		$$ = $2;
+	}
+	;
 
+scal_single
+	: '{' INTEGER ',' INTEGER ',' INTEGER ',' INTEGER '}'
+	{
+		scc_scale_slot_t* scaleslot;
+	
+		scaleslot = calloc(1, sizeof(scc_scale_slot_t));
+		scaleslot->s1 = $2;
+		scaleslot->y1 = $4;
+		scaleslot->s2 = $6;
+		scaleslot->y2 = $8;
+		
+		$$ = scaleslot;
+	}
+	;
+
+scal_list
+	: scal_single
+	{
+		$$ = $1;
+	}
+	| scal_list ',' scal_single
+	{
+		scc_scale_slot_t* scaleslot, next;	
+		int i=2;
+		for (scaleslot=$1;scaleslot->next;scaleslot = scaleslot->next,i++);
+
+		if (i>SCC_NUM_SCALE_SLOT)
+			SCC_ABORT(@2, "Exceeded max. %d values of scale slots.", SCC_NUM_SCALE_SLOT);
+
+		scaleslot->next = $3;	//Append to the end
+	
+		$$=$1;
+	}
+	;
 
 // the basic room parameters such as image, box, zplanes, etc
 roomdecls: roomdecl

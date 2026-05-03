@@ -101,6 +101,7 @@ void scc_roobj_free(scc_roobj_t* ro) {
   scc_roobj_obj_t* obj;
   scc_roobj_res_t* res;
   scc_boxd_t* box;
+  scc_scale_slot_t* scal;
   int i;
 
   SCC_LIST_FREE_CB(ro->scr,scr,scc_script_free);
@@ -117,6 +118,7 @@ void scc_roobj_free(scc_roobj_t* ro) {
   if(ro->boxm) free(ro->boxm);
   if(ro->boxmrawdata) free(ro->boxmrawdata);
   if(ro->scal) free(ro->scal);
+  if(ro->scalelist) SCC_LIST_FREE(ro->scalelist,scal);
   free(ro);
 }
 
@@ -1579,10 +1581,12 @@ int scc_roobj_write(scc_roobj_t* ro, scc_ns_t* ns, scc_fd_t* fd) {
   else
 	size += 8 + 8;
   // SCAL
-  if(!ro->scal)
-    size += 8 + 20;
-  else
-    size += ro->scal->size;
+	if (ro->scal)
+		size += ro->scal->size;
+	else if (ro->scalelist)
+		size += (8 + 8*SCC_NUM_SCALE_SLOT);
+	else
+		size += 8 + 20;
 
   // global scripts
   for(scr = ro->scr ; scr ; scr = scr->next)
@@ -1691,14 +1695,20 @@ int scc_roobj_write(scc_roobj_t* ro, scc_ns_t* ns, scc_fd_t* fd) {
   }
 
   // SCAL
-  if(ro->scal)
-    scc_fd_write(fd,ro->scal->data,ro->scal->size);
-  else {
-    scc_fd_w32(fd,MKID('S','C','A','L'));
-    scc_fd_w32be(fd,8 + 20);
-    for(i = 0 ; i < 5 ; i++)
-      scc_fd_w32(fd,0);
-  }
+	if(ro->scal)
+		scc_fd_write(fd,ro->scal->data,ro->scal->size);
+	else if (ro->scalelist)
+	{
+		scc_fd_w32(fd,MKID('S','C','A','L'));
+		scc_fd_w32be(fd,8 + 8*SCC_NUM_SCALE_SLOT);
+		scc_write_scalelist(fd, ro->scalelist);
+	}
+	else {
+		scc_fd_w32(fd,MKID('S','C','A','L'));
+		scc_fd_w32be(fd,8 + 20);
+		for(i = 0 ; i < 5 ; i++)
+		  scc_fd_w32(fd,0);
+	}
 
   // SCOB
   for(scr = ro->scr ; scr ; scr = scr->next) {

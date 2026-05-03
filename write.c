@@ -39,6 +39,7 @@
 #include "scc_util.h"
 #include "scc_cost.h"
 #include "scc.h"
+#include "scc_box.h"
 
 int scc_res_list_size(scc_res_list_t* list) {
   return 2 + 5*list->size;
@@ -177,6 +178,14 @@ int scc_boxm_size(uint8_t ** m) {
   return len;
 }
 
+int scc_sccallist_size(scc_scale_slot_t* scal)
+{
+	int i=0;
+	
+	for (scal;scal->next; scal=scal->next,i++);
+	
+	return (i+1)*8;	//2 bytes per data, s1 y1 s2 y2
+}
 
 int scc_room_size(scc_room_t* r) {
   int size = 8 + 6 + // RMHD
@@ -633,6 +642,27 @@ int scc_write_boxmrawdata(scc_fd_t* fd, uint8_t *m, int dim) {
 
   return 1;
 }
+
+int scc_write_scalelist(scc_fd_t* fd, scc_scale_slot_t* scal)
+{
+	int i=0;
+	for (;scal;scal=scal->next,i++)
+	{
+		scc_fd_w16le(fd, scal->s1);
+		scc_fd_w16le(fd, scal->y1);
+		scc_fd_w16le(fd, scal->s2);
+		scc_fd_w16le(fd, scal->y2);
+	}		
+	for(;i < SCC_NUM_SCALE_SLOT;i++)
+	{
+		scc_fd_w16le(fd,0);
+		scc_fd_w16le(fd,0);
+		scc_fd_w16le(fd,0);
+		scc_fd_w16le(fd,0);
+	}
+	return 1;
+}
+
 
 
 int scc_write_room(scc_fd_t* fd,scc_room_t* room) {

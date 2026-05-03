@@ -156,6 +156,7 @@ struct scc_roobj_st {
 	int boxmrawsize;		//The size of the matrix
 	/// Scaling slots
 	scc_data_t* scal;
+	scc_scale_slot_t* scalelist;
 };
 
 struct scc_source_st {

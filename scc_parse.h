@@ -133,6 +133,7 @@ typedef union scc_bison_val_s {
   scc_verb_statement_t* verbst;		//verb as single statement
   scc_actor_statement_t* actorst;	//actor as single statement
   scc_box_t* box;					//box single or list
+  scc_scale_slot_t* scal;		//scale slots
 } scc_bison_val_t;
 
 typedef struct scc_parser {
