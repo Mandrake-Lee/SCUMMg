@@ -41,13 +41,14 @@ static scc_keyword_t scc_keywords[] = {
 //	{ "case",       CASE,      -1 },
 	{ "case",       	SWITCH,		-1 },	
 	{ "center",     	CENTER,		-1 },
-	{ "color",      	COLOR,		-1 },					//SCUMM
-	{ "costume",		COSTUME,	-1 },					//SCUMM
 	{ "char",       	TYPE,      SCC_VAR_CHAR },
 	{ "chset",      	RESTYPE,   SCC_RES_CHSET },
 	{ "class",      	CLASS,     -1 },
+	{ "color",      	COLOR,		-1 },					//SCUMM	
 	{ "continue",   	BRANCH,    SCC_BRANCH_CONTINUE },
 	{ "cost",       	RESTYPE,   SCC_RES_COST },
+	{ "costume",		COSTUME,	-1 },					//SCUMM
+	{ "costumes",      	COSTUMES,	-1},					//SCUMM
 	{ "cutscene",   	CUTSCENE,  -1 },
 	{ "cycle",      	CYCL,      -1 },
 	{ "default",    	DEFAULT,   -1 },

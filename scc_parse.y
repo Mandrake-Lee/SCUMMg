@@ -119,6 +119,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token SCRIPT
 %token VERB
 %token ACTOR
+%token COSTUMES		//SCUMM
 %token VOICE
 %token CYCL
 
@@ -235,7 +236,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <sym> actor_header
 %type <actorst> actor_options
 %type <inst> actor_statement
-
+%type <sympath> sympath sympath_list
 %type <integer> gvardecl
 %type <integer> gresdecl
 %type <integer> groomresdecl
@@ -464,6 +465,8 @@ gresdecl: globalres SYM location
 {
   scc_ns_decl(sccp->ns,NULL,$3,$1,0,$4);
 }
+| costumes_gdecl
+{}
 ;
 
 globalres: ACTOR
@@ -770,6 +773,8 @@ roombodyentry2
 		sccp->obj = NULL;
 	}
 	| flem_block
+	{}
+	| costumes_block
 	;
 
 /*	
@@ -1485,6 +1490,88 @@ resdef: /* NOTHING */
   $$ = $2;
 }
 ;
+
+costumes_gdecl
+	: COSTUMES symlist_commasep
+	{
+		scc_scr_arg_t* a;
+		scc_symbol_t* sym;
+		for (a=$2;a;a=a->next)
+		{
+			sym=scc_ns_decl(sccp->ns,NULL,a->sym,SCC_RES_COST,0,-1);
+			
+			if(!sym)
+				SCC_ABORT(@2, "Symbol '%s' couldn't be created.\n", a->sym);
+			
+			//Clean
+			free(a->sym);
+		}
+		
+		//Clean
+		SCC_LIST_FREE($2, a);
+	}
+	;
+
+costumes_block
+	: COSTUMES open_block sympath_list close_block
+	{
+		scc_sympath_t* s;
+		scc_symbol_t* r;
+
+		for(s=$3;s;s=s->next)
+		{
+			//Get symbol
+			r = scc_ns_get_sym(sccp->ns, NULL, s->sym);
+			if (!r)
+				SCC_ABORT(@2, "costume '%s' not defined.\n", s->sym);
+			if (r->type != SCC_RES_COST)
+				SCC_ABORT(@2, "symbol '%s' not defined as costume.\n", s->sym);
+				
+			//Get resource data
+			scc_parser_find_res(sccp, &s->path);
+			// Attach both
+//			if(!sccp->do_deps && !scc_roobj_add_res(sccp->roobj,r,s->path));
+			if(!scc_roobj_add_res(sccp->roobj,r,s->path))
+				SCC_ABORT(@2,"Failed to add costumer resource '%s'.\n",s->sym);
+//			if(sccp->do_deps) scc_parser_add_dep(sccp,s->path);
+			
+			if(!r->rid) scc_ns_get_rid(sccp->ns,r);
+			
+			//Clean data once used
+			free(s->path);
+			free(s->sym);
+		}
+		
+		//Clean memory
+		SCC_LIST_FREE($3, s);
+	}
+	;
+	
+sympath_list
+	: sympath
+	{
+		$$ = $1;
+	}
+	| sympath_list sympath
+	{
+		scc_sympath_t* s;
+		
+		for(s=$1;s->next;s=s->next);
+		s->next = $2;
+		$$= $1;
+	}
+	;
+	
+sympath
+	: STRING SYM NEWLINE
+	{
+		scc_sympath_t* sympath = calloc(1, sizeof(scc_sympath_t));
+		sympath->sym = strdup($2);
+		sympath->path = strdup($1);
+		$$ = sympath;
+	}
+	;
+
 
 /*
 // params chain, we can't use the same as the room

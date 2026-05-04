@@ -115,6 +115,14 @@ struct scc_verb_script_st {
   scc_instruct_t* inst;
 };
 
+//Struct to hold duples sym & path
+typedef struct scc_sympath_st
+{
+	struct scc_sympath_st* next;
+	char* sym;
+	char* path;
+} scc_sympath_t;
+
 //Only for bison YYSTYPE
 typedef union scc_bison_val_s {
   int integer;
@@ -133,7 +141,8 @@ typedef union scc_bison_val_s {
   scc_verb_statement_t* verbst;		//verb as single statement
   scc_actor_statement_t* actorst;	//actor as single statement
   scc_box_t* box;					//box single or list
-  scc_scale_slot_t* scal;		//scale slots
+  scc_scale_slot_t* scal;			//scale slots
+  scc_sympath_t* sympath;			//list of symbols & paths, used for resources
 } scc_bison_val_t;
 
 typedef struct scc_parser {
