@@ -120,6 +120,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token VERB
 %token ACTOR
 %token COSTUMES		//SCUMM
+%token SOUNDS		//SCUMM
 %token VOICE
 %token CYCL
 
@@ -467,6 +468,8 @@ gresdecl: globalres SYM location
 }
 | costumes_gdecl
 {}
+| sounds_gdecl
+{}
 ;
 
 globalres: ACTOR
@@ -775,6 +778,9 @@ roombodyentry2
 	| flem_block
 	{}
 	| costumes_block
+	{}
+	| sounds_block
+	{}
 	;
 
 /*	
@@ -1512,6 +1518,28 @@ costumes_gdecl
 	}
 	;
 
+sounds_gdecl
+	: SOUNDS symlist_commasep
+	{
+		scc_scr_arg_t* a;
+		scc_symbol_t* sym;
+		for (a=$2;a;a=a->next)
+		{
+			sym=scc_ns_decl(sccp->ns,NULL,a->sym,SCC_RES_SOUND,0,-1);
+			
+			if(!sym)
+				SCC_ABORT(@2, "Symbol '%s' couldn't be created.\n", a->sym);
+			
+			//Clean
+			free(a->sym);
+		}
+		
+		//Clean
+		SCC_LIST_FREE($2, a);
+	}
+	;
+
+
 costumes_block
 	: COSTUMES open_block sympath_list close_block
 	{
@@ -1532,7 +1560,7 @@ costumes_block
 			// Attach both
 //			if(!sccp->do_deps && !scc_roobj_add_res(sccp->roobj,r,s->path));
 			if(!scc_roobj_add_res(sccp->roobj,r,s->path))
-				SCC_ABORT(@2,"Failed to add costumer resource '%s'.\n",s->sym);
+				SCC_ABORT(@2,"Failed to add costume resource '%s'.\n",s->sym);
 //			if(sccp->do_deps) scc_parser_add_dep(sccp,s->path);
 			
 			if(!r->rid) scc_ns_get_rid(sccp->ns,r);
@@ -1546,7 +1574,43 @@ costumes_block
 		SCC_LIST_FREE($3, s);
 	}
 	;
-	
+
+sounds_block
+	: SOUNDS open_block sympath_list close_block
+	{
+		scc_sympath_t* s;
+		scc_symbol_t* r;
+
+		for(s=$3;s;s=s->next)
+		{
+			//Get symbol
+			r = scc_ns_get_sym(sccp->ns, NULL, s->sym);
+			if (!r)
+				SCC_ABORT(@2, "sounds '%s' not defined.\n", s->sym);
+			if (r->type != SCC_RES_SOUND)
+				SCC_ABORT(@2, "symbol '%s' not defined as sound.\n", s->sym);
+				
+			//Get resource data
+			scc_parser_find_res(sccp, &s->path);
+			// Attach both
+//			if(!sccp->do_deps && !scc_roobj_add_res(sccp->roobj,r,s->path));
+			if(!scc_roobj_add_res(sccp->roobj,r,s->path))
+				SCC_ABORT(@2,"Failed to add sound resource '%s'.\n",s->sym);
+//			if(sccp->do_deps) scc_parser_add_dep(sccp,s->path);
+			
+			if(!r->rid) scc_ns_get_rid(sccp->ns,r);
+			
+			//Clean data once used
+			free(s->path);
+			free(s->sym);
+		}
+		
+		//Clean memory
+		SCC_LIST_FREE($3, s);
+	}
+	;
+
+
 sympath_list
 	: sympath
 	{
