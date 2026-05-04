@@ -251,7 +251,8 @@ scc_roobj_res_t* scc_roobj_add_res(scc_roobj_t* ro,scc_symbol_t* sym,
       rt++;
       continue;
     }
-    scc_log(LOG_ERR,"The file %s doesn't seem to contain what we want.\n",val);
+    scc_log(LOG_ERR,"The file %s (0x%08x/%c%c%c%c) doesn't seem to contain what we want.\n",
+					val, ft, (ft>>24)&0xFF, (ft>>16)&0xFF, (ft>>8)&0xFF, ft&0xFF);
     scc_fd_close(fd);
     return NULL;
   }
