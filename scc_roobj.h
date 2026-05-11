@@ -36,6 +36,12 @@
 
 #include <stdint.h>
 
+enum {
+	MONSTER_STRICT = 1<<1,
+	MONSTER_VOCCONVERT = 1<<2,
+};
+
+
 typedef struct scc_roobj_res_st scc_roobj_res_t;
 typedef struct scc_roobj_cycl_st scc_roobj_cycl_t;
 typedef struct scc_roobj_state_st scc_roobj_state_t;
@@ -193,6 +199,9 @@ void scc_roobj_create_boxd(scc_roobj_t* ro, scc_box_t* boxlist);
 
 int scc_roobj_add_voice(scc_roobj_t* ro, scc_symbol_t* sym, char* file,
                         int nsync, int* sync);
+						
+int scc_roobj_add_soundfile(scc_roobj_t* ro, scc_symbol_t* sym, char* filepath,
+                        int nsync, int* sync, int scummver);
 
 int scc_roobj_add_cycl(scc_roobj_t* ro, scc_symbol_t* sym,
                        int delay, int flags, int start, int end);

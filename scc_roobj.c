@@ -47,6 +47,7 @@
 #include "scc.h"
 #include "scc_roobj.h"
 #include "scc_code.h"
+#include "scc_sound.h"
 
 
 static int scc_roobj_set_image(scc_roobj_t* ro,scc_ns_t* ns,char* val);
@@ -394,6 +395,181 @@ int scc_roobj_add_voice(scc_roobj_t* ro, scc_symbol_t* sym, char* file,
 
   return 1;
 }
+
+int scc_roobj_add_voicedata(scc_roobj_t* ro, scc_symbol_t* sym, char* filedata,
+								unsigned int filesize, int nsync, int* sync)
+{
+	scc_roobj_res_t* r;
+	int i;
+	
+	// alloc the res
+	r = malloc(sizeof(scc_roobj_res_t));
+	if (!r)
+		return 0;
+	r->type = MKID('v','o','i','c');
+	r->sym = sym;
+	r->data_len = 8 + 2*nsync + filesize;
+	r->data = malloc(r->data_len);
+	
+	if(!r->data)
+		return 0;
+
+	// write the sync point table
+	SCC_SET_32(r->data,0,MKID('V','C','T','L'));
+	SCC_SET_32BE(r->data,4,8 + 2*nsync);
+	for(i = 0 ; i < nsync ; i++)
+		SCC_SET_16BE(r->data,8+2*i,sync[i]);
+	
+	//copy filedata
+	memcpy(r->data+8+2*nsync, filedata, filesize);
+	
+	// add the res to the list
+	r->next = ro->res;
+	ro->res = r;
+	
+	return 1;
+}
+
+//This function is meant to outsource all sound data to an external file
+//monster.sou, also variation .gob like Dark Forces
+int scc_roobj_add_soundmonster(	scc_roobj_t* ro, scc_symbol_t* sym, char* filepath,
+								int nsync, int* sync, int flags)
+{
+	scc_roobj_res_t* r;
+	scc_fd_t* fd;
+	int srate, length, i;
+	char* wavdata = NULL;
+	char* vocfile = NULL;
+	char* filedata = NULL;
+	uint32_t aux, ret;
+	off_t vsize;
+
+	//Open file
+	fd = new_scc_fd(filepath,O_RDONLY,0);
+	if(!fd)
+	{
+		scc_log(LOG_ERR,"Failed to open %s.\n",filepath);
+		return 0;
+	}
+	// get the file size & create mem
+	vsize = scc_fd_seek(fd,0,SEEK_END);
+	scc_fd_seek(fd,0,SEEK_SET);
+	filedata = malloc(vsize);
+	
+	//load data
+	if (scc_fd_read(fd,filedata,vsize) != vsize)
+	{
+		scc_log(LOG_ERR,"Error while reading soundfile '%s' file.\n", filepath);
+		scc_fd_close(fd);
+		ret =0;
+		goto end;
+	}
+  
+  
+	vocfile = filedata;
+	length = vsize;
+  
+	if(flags & MONSTER_VOCCONVERT)
+	{
+	  if(!strncmp(filedata, "RIFF",4) && !strncmp(filedata+8, "WAVE",4))
+	  {
+		aux = scc_sound_getwavdata(filedata, &srate, &wavdata, &length);
+		if (aux)
+		{
+			scc_log(LOG_ERR, "Error %d. Couldn't get wave file data from '%s'\n", aux, sym->sym);
+			ret = 0;
+			goto end;
+		}
+		length = scc_sound_raw2voc(wavdata, length, srate, &vocfile);
+		if (!vocfile)
+		{
+			scc_log(LOG_ERR, "Couldn't convert wave file from '%s'\n", sym->sym);
+			ret = 0;
+			goto end;
+		}
+	}	
+	}
+  
+	if (flags & MONSTER_STRICT)
+	{
+		if (SCC_GET_32(vocfile,0) == MKID('C','r','e','a'))
+		{
+			scc_roobj_add_voicedata(ro, sym, vocfile, length, nsync, sync);
+			ret = 1;
+		}
+		else
+		{
+			scc_log(LOG_ERR, "monster.sou strict does not accept non-VOC files for '%s'\n", sym->sym);
+			ret = 0;
+		}
+	}
+	else
+	{
+		//At this point, we just embeb whatever the file into monster.sou
+		scc_roobj_add_voicedata(ro, sym, vocfile, length, nsync, sync);
+		ret = 1;
+	}
+
+end:
+	//Clean
+	if (filedata)
+		free (filedata);
+	if (vocfile)
+		free (vocfile);
+
+	return ret;
+}
+
+
+//Adds a soundfile and automatically attachs it to the room as a voice or music
+//depending on the scummversion
+int scc_roobj_add_soundfile(scc_roobj_t* ro, scc_symbol_t* sym, char* filepath,
+                        int nsync, int* sync, int scummver)
+{
+	scc_roobj_res_t* r;
+	int soundtype, result=1;
+	uint32_t flags;
+	
+	if (scummver==6 || scummver == 7)
+		flags = MONSTER_VOCCONVERT | MONSTER_STRICT;
+	
+	soundtype = scc_sound_gettype(filepath);
+	
+	if (soundtype<0 || scummver >8 || scummver <1)
+	{
+		scc_log(LOG_ERR,"Soundfile not recognized %d with SCUMM ver %d.\n",
+				soundtype, scummver);
+		return 0;	//Unrecognized format
+	}
+
+	//Always embed file in room
+	if (soundtype == MIDI_FILE || scummver<6)
+	{
+		r = calloc(1,sizeof(scc_roobj_res_t));
+		r->type = MKID('S','O','U','N');
+		r->sym = sym;
+		r->data_len = scc_sound_wrapper(filepath, &r->data, soundtype, 0);
+		r->next = ro->res;
+		ro->res = r;
+		sym->type = SCC_RES_SOUND;
+		
+		if (r->data_len<0)
+		{
+			scc_log(LOG_ERR,"Error while wrapping file %s.\n", filepath);
+			free (r);
+			return 0;
+		}			
+	}
+	else
+	{
+		//This will go to separate monster.sou file
+		result = scc_roobj_add_soundmonster(ro, sym, filepath, nsync, sync, flags);
+		sym->type = SCC_RES_VOICE;
+	}
+	
+	return result;
+}
+
 
 int scc_roobj_add_cycl(scc_roobj_t* ro, scc_symbol_t* sym,
                        int delay, int flags, int start, int end) {
@@ -1494,7 +1670,7 @@ int scc_roobj_write_res(scc_roobj_res_t* res, scc_fd_t* fd) {
   }
 
   if(scc_res_types[rt].type < 0) {
-    scc_log(LOG_ERR,"Unknown resource type !!!!\n");
+    scc_log(LOG_ERR,"Couldn't write resource. Unknown type 0x%08x!!!!\n", res->type);
     return 0;
   }
   

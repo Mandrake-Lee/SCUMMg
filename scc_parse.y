@@ -1594,7 +1594,8 @@ sounds_block
 			scc_parser_find_res(sccp, &s->path);
 			// Attach both
 //			if(!sccp->do_deps && !scc_roobj_add_res(sccp->roobj,r,s->path));
-			if(!scc_roobj_add_res(sccp->roobj,r,s->path))
+//			if(!scc_roobj_add_res(sccp->roobj,r,s->path))
+			if(!scc_roobj_add_soundfile(sccp->roobj, r, s->path, 0, NULL, sccp->target->version))
 				SCC_ABORT(@2,"Failed to add sound resource '%s'.\n",s->sym);
 //			if(sccp->do_deps) scc_parser_add_dep(sccp,s->path);
 			
