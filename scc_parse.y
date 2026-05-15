@@ -551,7 +551,7 @@ roombdecl2
 	  scc_ns_get_rid(sccp->ns,sym);
 	  scc_ns_push(sccp->ns,sym);
 	  sccp->roobj = scc_roobj_new(sccp->target,sym);
-	  sccp->roobj->filename = strdup($2);
+	  sccp->roobj->filename = $2;
 	}
 	;
 
@@ -871,7 +871,7 @@ globalscrdecl2: SCRIPT SYM scriptargs_all
 
 	//Dump script name data and link
 	script->type = SCC_RES_SCR;
-	script->sym = strdup($2);
+	script->sym = $2;
 	script->next = args;
 
 	$$ = script;
@@ -979,7 +979,7 @@ globalscrdecl: SCRIPT SYM scriptargs_all
 	script = calloc(1, sizeof(scc_scr_arg_t));
 
 	script->type = SCC_RES_SCR;
-	script->sym = strdup($2);
+	script->sym = $2;
 	script->next = args;
 
 	$$ = script;
@@ -1137,6 +1137,8 @@ flemdecl
 
 		// add dep
 		if(sccp->do_deps) scc_parser_add_dep(sccp,$3);
+		//Clean
+		free($3);
 	}	
 	| SYM ASSIGN '{' zbufs '}'
 	{
@@ -1150,6 +1152,9 @@ flemdecl
 			if(!scc_roobj_set_zplane(sccp->roobj,i+1,$4[i]))
 				SCC_ABORT(@1,"Failed to set room zplane %d.\n",i+1);
 		}
+		for(i=0;$4[i] ; i++)
+			free($4[i]);
+		free($4);
 	}
 	| SYM ASSIGN INTEGER
 	{
@@ -1631,8 +1636,8 @@ sympath
 	: STRING SYM NEWLINE
 	{
 		scc_sympath_t* sympath = calloc(1, sizeof(scc_sympath_t));
-		sympath->sym = strdup($2);
-		sympath->path = strdup($1);
+		sympath->sym = $2;
+		sympath->path = $1;
 		$$ = sympath;
 	}
 	;
@@ -1851,7 +1856,7 @@ objectverbs2
 			scr->sym = v->sym;
 			if(!scc_roobj_obj_add_verb(sccp->obj,scr))
 				SCC_ABORT(@1,"Failed to add verb %s.\n",v->sym ? v->sym->sym : "default");
-		}    
+		}
 //		scc_ns_clear(sccp->ns,SCC_RES_LVAR);
 //		scc_ns_pop(sccp->ns);
 	}
@@ -1936,7 +1941,7 @@ verb_symbols2
 
 		//Create a NULL terminated array of symbol pointers
 		array = malloc(2*sizeof(char*));
-		array[0] = strdup($1);
+		array[0] = $1;
 		array[1] = NULL;
 		$$ = array;
 	}
@@ -1948,7 +1953,7 @@ verb_symbols2
 		for (l=0;$1[l];l++);	//Find length
 
 		$$=realloc($1, (l+2)*sizeof(char*));
-		$$[l] = strdup($2);
+		$$[l] = $2;
 		$$[l+1] = NULL;
 	}
 	;
@@ -2207,7 +2212,8 @@ vdecl: TYPE typemod SYM
   sccp->local_vars++;
   $$ = $1;
 };
- 
+
+
 body: instruct
 {
   $$ = $1;
@@ -2223,6 +2229,7 @@ body: instruct
 	$$ = NULL;		//TODO: If we tolerate empty block of instructions
 }
 ;
+
 
 instructions: instruct
 {

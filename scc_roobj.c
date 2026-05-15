@@ -1899,5 +1899,18 @@ int scc_roobj_write(scc_roobj_t* ro, scc_ns_t* ns, scc_fd_t* fd) {
   for(res = ro->res ; res ; res = res->next)
     scc_roobj_write_res(res,fd);
 
+	//Clean mem
+	//TODO. This piece of code should be independent like scc_rmim_free(x)
+	if (rmim)
+	{
+		free(rmim->smap);
+		for(i=0;i<SCC_MAX_IM_PLANES;i++)
+			if(rmim->z_buf[i])
+				free(rmim->z_buf[i]);
+		free(rmim);
+	}
+	if (pals)
+		free(pals);
+
   return 1;
 }

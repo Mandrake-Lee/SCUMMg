@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <limits.h>
 #include "scc_lex_bison.h"
 #include "scc_parse.h"
 #include "scc_help.h"
@@ -71,6 +72,7 @@ int main (int argc, char** argv) {
 	scc_cl_arg_t* files,*f;
 	scc_parser_t* sccp;
 	char* out;
+	char resolved_path[PATH_MAX];
 	scc_source_t *src,*srcs = NULL;
 	scc_roobj_t* scc_roobj;
 	scc_fd_t* out_fd;
@@ -84,7 +86,8 @@ int main (int argc, char** argv) {
 	if(!files) scc_print_help(&scc_help,1);
 
 	//By default, add as resource path the location of the .scu file we're compiling
-	scc_res_path = appendString(scc_res_path, dirname(realpath(files->val, NULL)));
+	realpath(files->val, resolved_path);
+	scc_res_path = appendString(scc_res_path, dirname(resolved_path));
 
 	/* Experimental preprocessor enabled by default */
 	if (!less_pp){
@@ -107,11 +110,13 @@ int main (int argc, char** argv) {
 			filein = fopen(f->val,"r");
 			fileout = fopen(filenamepp, "w");
 			/* Add target file folder to include's path */
-			cpp_add_includedir(scummpp,dirname(realpath(f->val,NULL)));
+			realpath(f->val, resolved_path);
+			cpp_add_includedir(scummpp,dirname(resolved_path));
 			i = cpp_run(scummpp, filein, fileout, f->val);
 			fclose(filein);
 			fclose(fileout);
 			cpp_free(scummpp);
+			free(scummpp);
 		
 			if (i==0) {
 				scc_log(LOG_ERR,"Failed SCUMM preprocessor %s.\n",out);
@@ -171,6 +176,15 @@ int main (int argc, char** argv) {
 	}
 
 	scc_fd_close(out_fd);
+
+	//Missing cleaning all mem!? WOW!
+	for(src = srcs ; src ; src = src->next)
+		SCC_LIST_FREE_CB(src->roobj_list,scc_roobj,scc_roobj_free);
+
+//scc_symbol_free(srcs->ns->cur)
+scc_ns_free(srcs->ns);
+//	SCC_LIST_FREE_CB(srcs, src, scc_ns_free);
+
 
 	return 0;
 }
