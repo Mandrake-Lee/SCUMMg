@@ -224,6 +224,12 @@ static int is_identifier(const char *s) {
 	return 1;
 }
 
+static int is_letter(const char *s) {
+	if (*s<'A' || *s>'z' || (*s>'Z' && *s<'a'))
+		return 0;
+	return 1;
+}
+
 static enum tokentype categorize(const char *s) {
 	if(is_hex_int_literal(s)) return TT_HEX_INT_LIT;
 	if(is_dec_int_literal(s)) return TT_DEC_INT_LIT;
@@ -411,6 +417,7 @@ void tokenizer_skip_until(struct tokenizer *t, const char *marker)
 int tokenizer_next(struct tokenizer *t, struct token* out) {
 	char *s = t->buf;
 	out->value = 0;
+	out->type = 0;
 	int c = 0;
 	if(t->peeking) {
 		*out = t->peek_token;
@@ -437,7 +444,22 @@ int tokenizer_next(struct tokenizer *t, struct token* out) {
 				if(c == '\n') continue;
 				tokenizer_ungetc(t, c);
 				c = '\\';
-			} else if(is_plus_or_minus(c) && s > t->buf+1 &&
+			} else if(c=='-' && is_letter(&s[-1]))	//Accept hypen as no separator
+			{
+				c = tokenizer_getc(t);	//Look ahead
+				if(is_letter(&c))
+				{
+					tokenizer_ungetc(t, c);
+					c='-';
+					out->type = TT_IDENTIFIER;	//This is a hack
+					goto process_char;
+				}
+				//Undo and follow
+				tokenizer_ungetc(t, c);
+				c='-';
+				goto follow;				
+follow:			}
+			  else if(is_plus_or_minus(c) && s > t->buf+1 &&
 				  (s[-1] == 'E' || s[-1] == 'e') && is_valid_float_until(t->buf, s-1)) {
 				goto process_char;
 			} else if(c == '.' && s != t->buf && is_valid_float_until(t->buf, s) == 1) {
@@ -467,6 +489,7 @@ process_char:;
 			return apply_coords(t, out, s, 0);
 		}
 	}
+
 	if(s == t->buf) {
 		if(c == EOF) {
 			out->type = TT_EOF;
@@ -519,7 +542,8 @@ string_handling:
 	}
 	//s = assign_bufchar(t, s, 0);
 	*s = 0;
-	out->type = categorize(t->buf);
+	if(!out->type)
+		out->type = categorize(t->buf);
 	return apply_coords(t, out, s, out->type != TT_UNKNOWN);
 }
 
