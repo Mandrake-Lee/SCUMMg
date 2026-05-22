@@ -768,7 +768,7 @@ roombodyentry2
 		scc_ns_clear(sccp->ns,SCC_RES_LVAR);
 		scc_ns_pop(sccp->ns);	
 	}
-	| roomobjdecl2 open_block objectparams2 objectverbs2 close_block
+	| roomobjdecl2 open_block objectparams2 close_block
 	{
 		if(!$1->rid) scc_ns_get_rid(sccp->ns,$1);
 		// add the obj to the room
@@ -1207,6 +1207,10 @@ flemdecl
 		sccp->roobj->scalelist = $3;
 	}
 	;
+
+flemdecls_obj
+	: flemdecl_obj NEWLINE
+	| flemdecls_obj flemdecl NEWLINE
 
 box_declaration
 	:box_single
@@ -1652,27 +1656,35 @@ objectparams: objectparam ';'
 */
 
 objectparams2
-	: objectparam2 NEWLINE
-	| objectparams2 objectparam2 NEWLINE
+	: objectparam2
+	| objectparams2 objectparam2
 	;
 
 objectparam2
-	: NAME IS STRING
+	: NAME IS STRING NEWLINE
 	{
 	if(!scc_roobj_obj_set_param(sccp->obj, "name",$3))
 		SCC_ABORT(@1,"Failed to set object parameter.\n");
 	}
-	| CLASS IS integerlist
+	| CLASS IS integerlist NEWLINE
 	{
 		int i, length= $3[0];
 		for (i=0;i<length;i++)
 			scc_roobj_obj_set_classpos(sccp->obj, $3[i]);
 	}
+	| flem_header flemdecls_obj close_block
+	{
+	}
+	| objectverbs2
+	{
+	}
 	;
+	
 
-/*
+
 // used by objects
-objectparam: SYM ASSIGN STRING
+//objectparam: SYM ASSIGN STRING
+flemdecl_obj: SYM ASSIGN STRING
 {
   if($2 != '=')
     SCC_ABORT(@2,"Invalid operator for parameter setting.\n");
@@ -1733,7 +1745,7 @@ objectparam: SYM ASSIGN STRING
     SCC_ABORT(@2,"Invalid operator for parameter setting.\n");
 }
 ;
-*/
+
 
 
 
