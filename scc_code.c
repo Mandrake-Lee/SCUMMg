@@ -858,7 +858,7 @@ static scc_code_t* scc_if_gen_code(scc_instruct_t* inst) {
   SCC_LIST_ADD(code,last,c);
 
   // Optimize out the branch instructions, they all generate a jump
-  if(inst->body->type == SCC_INST_BRANCH &&
+  if(inst->body && inst->body->type == SCC_INST_BRANCH &&
      inst->body->subtype != SCC_BRANCH_RETURN) {
     // get the code
     c = scc_branch_gen_code(inst->body);
