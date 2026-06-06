@@ -318,7 +318,7 @@ gdecl: gvardecl
 {}
 | gresdecl //';'
 {}
-| groomresdecl ';'
+| groomresdecl //';'
 {}
 | groomdecl //';'
 /*
@@ -1210,7 +1210,7 @@ flemdecl
 
 flemdecls_obj
 	: flemdecl_obj NEWLINE
-	| flemdecls_obj flemdecl NEWLINE
+	| flemdecls_obj flemdecl_obj NEWLINE
 
 box_declaration
 	:box_single
@@ -1850,12 +1850,13 @@ objectverbs2
 	: /* nothing */
 	{
 	}
-	| verb_open_block scriptbody close_block
+//	| verb_open_block scriptbody close_block
+	| verb_open_block instructions close_block
 	{
 		scc_verb_script_t* v,*l;
 		scc_script_t* scr;
 
-		//scriptbody should be added to the last verb entry
+		//scriptbody should be added to the last verb entry, walk the list
 		for (v=$1;v->next;v=v->next);
 		v->inst = $2;
 
@@ -1878,7 +1879,7 @@ verb_open_block
 	: VERB verb_symbols open_block
 	{
 		scc_symbol_t **array, *a;
-		scc_verb_script_t *objverbscr, *vscr;
+		scc_verb_script_t *objverbList=NULL, *last=NULL, *vscr;
 		int i,l;
 		
 		for(i=0;$2[i];i++)
@@ -1886,14 +1887,12 @@ verb_open_block
 			vscr = calloc(1,sizeof(scc_verb_script_t));
 			vscr->sym = $2[i];
 			vscr->inst = NULL;
-			if (!objverbscr)
-				objverbscr = vscr;
-			vscr = vscr->next;
+			SCC_LIST_ADD(objverbList, last, vscr);
 		}
 	
 		free($2);
 		
-		$$ = objverbscr;
+		$$ = objverbList;
 	}
 	;
 
