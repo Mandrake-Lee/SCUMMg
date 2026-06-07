@@ -883,6 +883,7 @@ globalscr_openblk: globalscrdecl2 open_block
 	scc_scr_arg_t *argAux, *script = $1;
 	scc_symbol_t *s, *a;
 	scc_symbol_t *roomg;
+	char auxsym[64];
 
 	//First check that script is already declared
 	s = scc_ns_get_sym(sccp->ns,"-GLOBAL-", script->sym);
@@ -907,8 +908,10 @@ globalscr_openblk: globalscrdecl2 open_block
 	}
 	else
 	{
+		strncpy(auxsym, script->sym, 63);
+		auxsym[63]='\0';
 		SCC_LIST_FREE(script, argAux);
-		SCC_ABORT(@1, "Global script \'%s\' has no forward declaration",s->sym);	
+		SCC_ABORT(@1, "Global script \'%s\' has no forward declaration",auxsym);	
 	}
 
 /*	
