@@ -77,6 +77,7 @@ static scc_keyword_t scc_keywords[] = {
 	{ "name",			NAME,		-1 },					//SCUMM
 	{ "new",			NEW,		-1 },					//SCUMM
 	{ "nibble",     	TYPE,      SCC_VAR_NIBBLE },
+	{ "not",			NOT,		-1},					//SCUMM
 	{ "object",     	OBJECT,    -1 },
 	{ "of",				CASE,		-1},					//SCUMM
 	{ "off",			OFF,		-1},					//SCUMM

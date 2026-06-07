@@ -97,6 +97,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %left <integer> '*' '/'
 %right <integer> NEG
 %right <integer> '!'
+%right <integer> NOT
 %nonassoc <integer> SUFFIX
 %right PREFIX
 %left POSTFIX
@@ -3121,6 +3122,7 @@ statement: dval
 }
 
 | '!' statement
+| NOT statement
 {
   if($2->type == SCC_ST_VAL) {
     $2->val.i = ! $2->val.i;
