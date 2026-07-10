@@ -193,6 +193,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <st> dval
 
 %type <st> cargs
+%type <st> space_args
 %type <st> var
 %type <st> call
 
@@ -253,14 +254,14 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <arg> scriptargs_explicit
 %type <arg> scriptargs_loose
 %type <arg> scriptargs_all
-%type <arg> globalscrdecl2
+%type <sym> globalscrdecl2
 %type <arg> symlist_commasep
 %type <sym> roomscrdecl
 %type <sym> roomscrdecl2
 %type <sym> enterscr_header
 %type <sym> exitscr_header
 %type <sym> globalscrdecl
-%type <sym> globalscr_openblk
+%type <sym> globalscr_header
 %type <sym> roomobjdecl
 %type <sym> roomobjdecl2
 %type <sym> cycledecl
@@ -331,74 +332,42 @@ gdecl: gvardecl
 */
 | globalscrdecl2
 {
-	scc_scr_arg_t *argAux, *script = $1;
-	scc_symbol_t *s, *a;
+	scc_scr_arg_t *a;
+	scc_symbol_t *s;
+	scc_symbol_t *scriptsym = $1;
+	int val;
 
 	//First check that script is not already defined
-	s = scc_ns_get_sym(sccp->ns,"-GLOBAL-", script->sym);
+	s = scc_ns_get_sym(sccp->ns,"-GLOBAL-", scriptsym->sym);
 	
-	if (s)
+	if (s)	//At this point there's a double declaration and hence error
 	{
-		//If this is a declaration, then we're already in double decl error
-		//If this is a definition then it is a must
-		
-		a = s->childs;
-		argAux = script->next;
-		while(argAux && a)
+		val = scc_sym_scriptcmp(scriptsym, s);
+	
+		if (val)
 		{
-			if (strcmp(a->sym, argAux->sym))
-			{
-				SCC_LIST_FREE(script, argAux);
-				SCC_ABORT(@1, "Global script \'%s\' double declaration mismatch arguments",s->sym);
-			}
-			a = a->next;
-			argAux = argAux->next;
+			SCC_LIST_FREE(scriptsym->args, a);
+			SCC_ABORT(@1, "Script declaration \'%s\' duplicated with mismatch error = %d", s->sym, val);
 		}
-		
-		SCC_LIST_FREE(script, argAux);
-		SCC_ABORT(@1, "Global script \'%s\' double declaration", s->sym);
-		//At the same room?
-		//Same arguments?
+		else
+		{
+			SCC_LIST_FREE(scriptsym->args, a);
+			SCC_ABORT(@1, "Script declaration \'%s\' duplicated", s->sym);
+		}
 	}
-	else	//At this branch, we create the global script
+	else	//At this branch, we declare the global script sym declaration
 	{
 		scc_symbol_t *roomg;
 
-		s = scc_ns_decl(sccp->ns,"-GLOBAL-",script->sym,SCC_RES_SCR,0,-1);  
+		s = scc_ns_decl(sccp->ns,"-GLOBAL-",scriptsym->sym,SCC_RES_SCR,0,-1);  
 		if(!s)
-			SCC_ABORT(@1,"Failed to declare global script \'%s\'.\n",script->sym);
+			SCC_ABORT(@1,"Failed to declare global script \'%s\'.\n",scriptsym->sym);
 
-		roomg = scc_ns_get_sym(sccp->ns, NULL, "-GLOBAL-");
-		
-		if (!roomg)
-			SCC_ABORT(@1, "Room global not found!");
-			
-		//Go to global room and allocate script
-		scc_ns_push(sccp->ns,roomg);
-		scc_ns_push(sccp->ns,s);	//This pushes the scope of the variables
-
-		// declare the arguments
-		sccp->local_vars = 0;		//I'm not sure about this line. MAN
-		argAux = script->next;
-		while(argAux)
-		{
-			scc_ns_decl(sccp->ns,NULL,argAux->sym,SCC_RES_LVAR,argAux->type,sccp->local_vars);
-			sccp->local_vars++;
-			argAux = argAux->next;
-		}
-		
-		SCC_LIST_FREE(script, argAux);
-		
-		//Return to root level
-		/** missing remove lvar? */
-		scc_ns_clear(sccp->ns,SCC_RES_LVAR);
-
-		scc_ns_pop(sccp->ns);
-		scc_ns_pop(sccp->ns);
-		
-//		$$ = s;	
+		s->args = scriptsym->args;
 	}
 
+	//Free symbol
+	free(scriptsym);
 }
 ;
 
@@ -825,11 +794,14 @@ roombodyentry2
 
 //globalscript: globalscrdecl '{' scriptbody '}'
 //globalscript: globalscrdecl2 open_block scriptbody close_block
-globalscript: globalscr_openblk scriptbody close_block
+globalscript: globalscr_header scriptbody close_block
 {
 	scc_symbol_t *roomg;
 	scc_roobj_t *cur, *next;
-	
+printf("global script = '%s'\n", $1->sym);
+//printf("Room name = %s\n", sccp->roobj->sym->sym);
+
+
 	roomg = scc_ns_get_sym(sccp->ns, NULL, "-GLOBAL-");
 	if (!roomg)
 		SCC_ABORT(@1, "Room global not found!");
@@ -847,8 +819,15 @@ globalscript: globalscr_openblk scriptbody close_block
 	if(!cur)
 		SCC_ABORT(@1, "Global room object not created");
 
+//Check declaration
+
+//Create local vars
+
+//At this level, we should be in the global room with local variables created.
+
 	if($2) {
 		$2->sym = $1;
+//		scc_roobj_add_scr(sccp->roobj, $2);
 		scc_roobj_add_scr(cur,$2);
 	}
 
@@ -865,104 +844,84 @@ globalscrdecl2: SCRIPT SYM scriptargs_all
 		the arguments.
 		We will abuse a bit of the args struct.
 	*/
-	scc_scr_arg_t* args = $3;
-	scc_scr_arg_t* script;
+	scc_symbol_t *scriptsym;
 
-	script = calloc(1, sizeof(scc_scr_arg_t));
+	scriptsym = malloc(sizeof(scc_symbol_t));
 
 	//Dump script name data and link
-	script->type = SCC_RES_SCR;
-	script->sym = $2;
-	script->next = args;
+	scriptsym->type = SCC_RES_SCR;
+	scriptsym->sym = $2;
+	scriptsym->args = $3;
 
-	$$ = script;
+	$$ = scriptsym;
 }
 ;
 
-globalscr_openblk: globalscrdecl2 open_block
+globalscr_header: globalscrdecl2 open_block
 	{
-	scc_scr_arg_t *argAux, *script = $1;
+	scc_scr_arg_t *argAux;
 	scc_symbol_t *s, *a;
 	scc_symbol_t *roomg;
+	scc_symbol_t *scriptsym = $1;
 	char auxsym[64];
+	int val;
+
+	//Prepare name
+	strncpy(auxsym, scriptsym->sym, 63);
+	auxsym[63]='\0';
 
 	//First check that script is already declared
-	s = scc_ns_get_sym(sccp->ns,"-GLOBAL-", script->sym);
+	s = scc_ns_get_sym(sccp->ns,"-GLOBAL-", scriptsym->sym);
 	
-	if (s)
+	//If there's no previous declaration, error
+	if (!s)
 	{
-		//If this is a declaration, then we're already in double decl error
-		//If this is a definition then it is a must
-		
-		a = s->childs;
-		argAux = script->next;
-		while(argAux && a)
-		{
-			if (strcmp(a->sym, argAux->sym))
-			{
-				SCC_LIST_FREE(script, argAux);
-				SCC_ABORT(@1, "Global script \'%s\' double declaration mismatch arguments",s->sym);
-			}
-			a = a->next;
-			argAux = argAux->next;
-		}
-	}
-	else
-	{
-		strncpy(auxsym, script->sym, 63);
-		auxsym[63]='\0';
-		SCC_LIST_FREE(script, argAux);
+		SCC_LIST_FREE(scriptsym->args, argAux);
+		free(scriptsym);
 		SCC_ABORT(@1, "Global script \'%s\' has no forward declaration",auxsym);	
 	}
-
-/*	
-	sccp->local_vars = 0;
-	for (a=s->childs;a;a=a->next)
-		{sccp->local_vars++;}
-	printf("local_vars = %d\n", sccp->local_vars);	//DEBUG
-*/
-	SCC_LIST_FREE(script, argAux);
-
+	
+	//Check that declaration and definition header matches
+	val = scc_sym_scriptcmp(scriptsym, s);
+	
+	if(val)
+	{
+		SCC_LIST_FREE(scriptsym->args, argAux);
+		free(scriptsym);
+		SCC_ABORT(@1, "Global script \'%s\' header mismatch forward declaration with error = %d",auxsym, val);	
+	}
+	
+	//At his point, we're safe to create the symbols in the namespace
+	//Clean the definition
+	SCC_LIST_FREE(scriptsym->args, argAux);
+	free(scriptsym);
+	
 	roomg = scc_ns_get_sym(sccp->ns, NULL, "-GLOBAL-");
 	if (!roomg)
 		SCC_ABORT(@1, "Room global not found!");
 
-	if(!roomg->rid) scc_ns_get_rid(sccp->ns,roomg);
-	if (!scc_ns_push(sccp->ns, roomg))
-		SCC_ABORT(@1, "Push level not worked for room %s", roomg->sym);
-	if (!scc_ns_push(sccp->ns, s))
-		SCC_ABORT(@1, "Push level not worked for global script %s", s->sym);
+	//Go to global room and allocate script
+	scc_ns_push(sccp->ns,roomg);
+	scc_ns_push(sccp->ns,s);	//This pushes the scope of the variables
 
-	//We need to find roobj for global
-	scc_roobj_t *cur, *next;
-	cur = sccp->roobj_list;
-	while(cur)
-	{
-		if (cur->sym == roomg)
-			break;
-		cur = cur->next;
-	}
-
-	if(!cur)
-		SCC_ABORT(@1, "Global room object not created");	
-	
-	//Add arguments of the function as first local variables
+	// declare the arguments
 	sccp->local_vars = 0;
-	while(a)
-	{
-		scc_ns_decl(sccp->ns,NULL,a->sym,SCC_RES_LVAR,a->type,sccp->local_vars);
-		sccp->local_vars++;
-		a = a->next;
-	}
-	
-//	sccp->roobj = cur;
-	
-//	printf("Current push level symbol is '%s'\n", sccp->ns->cur->sym);	//MAN
-	a=scc_ns_get_sym_at(sccp->ns, SCC_RES_LVAR, 0x4000);
-	if(a)
-		printf("Found symbol at address 0 named '%s'\n", a->sym);	//MAN
-	
-	
+	argAux = s->args;
+		while(argAux)
+		{
+			scc_ns_decl(sccp->ns,NULL,argAux->sym,SCC_RES_LVAR,argAux->type,sccp->local_vars);
+
+#if 0
+/* DEBUG TO BE DELETED MAN */
+printf("**script name = '%s'\n", s->sym);
+printf("argname = %s\n", argAux->sym);
+printf("sccp->ns->cur=%s\n", sccp->ns->cur->sym);
+printf("sccp->ns->cur->childs=%s\n", sccp->ns->cur->childs?sccp->ns->cur->childs->sym:"NULL");
+#endif
+			sccp->local_vars++;
+			argAux = argAux->next;
+		}
+
 	$$ = s;
 	}
 	;
@@ -2094,22 +2053,23 @@ scriptargs_explicit: '(' ')'
 /* When scriptargs are loose separated with spaces e.g. arg1 arg2 ... */
 scriptargs_loose: /* empty */
 	{
+printf("\tDetected NULL argument\n");	//DEBUG			
 		$$=NULL;	/* nothing that follows... no arguments*/
 	}
-	| SYM
+	| typemod SYM
 	{
 		$$ = malloc(sizeof(scc_scr_arg_t));
 		$$->next = NULL;
-		$$->type = SCC_RES_LVAR;
-		$$->sym = $1;
+		$$->type = SCC_VAR_WORD | $1; 	//SCC_RES_LVAR;	//DEBUG
+		$$->sym = $2;
 	}
-	| scriptargs_loose SYM
+	| scriptargs_loose typemod SYM
 	{
-		scc_scr_arg_t *i,*a;
+		scc_scr_arg_t *i, *a;
 		a = malloc(sizeof(scc_scr_arg_t));
 		a->next = NULL;
-		a->type = SCC_RES_LVAR;
-		a->sym = $2;
+		a->type = SCC_VAR_WORD | $2;		//SCC_RES_LVAR;	//DEBUG
+		a->sym = $3;
 
 		/* Sanity check, we can't duplicate symbols of arguments */
 		i=$1;
@@ -2119,7 +2079,7 @@ scriptargs_loose: /* empty */
 				SCC_ABORT(@1, "Illegal duplication of argument \'%s\'\n", a->sym);
 			i = i->next;
 		}
-
+		
 		for(i = $1 ; i->next ; i = i->next);	//Find the end of the list
 		i->next = a;
 		$$ = $1;
@@ -3647,6 +3607,56 @@ call: SYM '(' cargs ')'
   $$->val.c.argv = scr;
   $$->val.c.argc = 2;
 }
+	| SYM space_args
+	{
+		scc_statement_t *a,*scr,*list;
+		scc_func_t* f;
+		scc_symbol_t* s;
+		char* err;
+		int user_script = 0;
+
+		f = scc_get_func(sccp,$1);
+		if(!f) {
+			s = scc_ns_get_sym(sccp->ns,NULL,$1);
+			if(!s || (s->type != SCC_RES_SCR && s->type != SCC_RES_LSCR))
+				SCC_ABORT(@1,"%s is not a known function or script.\n",$1);
+
+			f = scc_get_func(sccp,"startScript0");
+			if(!f)
+				SCC_ABORT(@1,"Internal error: startScriptQuick not found.\n");
+
+			if(!s->rid)
+				scc_ns_get_rid(sccp->ns,s);
+
+			// create the arguments
+			scr = calloc(1,sizeof(scc_statement_t));
+			scr->type = SCC_ST_RES;
+			scr->val.r = s;
+
+			list = calloc(1,sizeof(scc_statement_t));
+			list->type = SCC_ST_LIST;
+			list->val.l = $2;
+
+			scr->next = list;
+
+			$2 = scr;
+			user_script = 1;
+		}
+
+		$$ = calloc(1,sizeof(scc_statement_t));
+		$$->type = SCC_ST_CALL;
+
+		$$->val.c.func = f;
+		$$->val.c.user_script = user_script;
+		$$->val.c.argv = $2;
+
+		for(a = $2 ; a ; a = a->next)
+		$$->val.c.argc++;
+
+		err = scc_statement_check_func(&$$->val.c);
+		if(err)
+		SCC_ABORT(@1,"%s",err);
+	}
 ;
 
 cargs: 
@@ -3670,6 +3680,30 @@ cargs:
 
   i->next = $3;
 };
+
+/* space and/or tab separated argument list for a script. */
+space_args: 
+	/* empty */
+	{
+		$$ = NULL;
+	}
+
+	| statement
+	{
+		$$ = $1;
+	}
+
+	| cargs statement
+	{
+		scc_statement_t* i;
+
+		$$ = $1;
+
+		for(i = $$ ; i->next ; i = i->next);
+
+		i->next = $2;
+	};
+
 
 isargs: isarg
 {

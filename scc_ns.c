@@ -39,8 +39,12 @@
 void scc_symbol_list_free(scc_symbol_t* s);
 
 void scc_symbol_free(scc_symbol_t* s) {
+  
+  scc_scr_arg_t *a;
+  
   if(s->sym) free(s->sym);
   if(s->childs) scc_symbol_list_free(s->childs);
+  if(s->args) SCC_LIST_FREE(s->args, a);
   free(s);
 }
 

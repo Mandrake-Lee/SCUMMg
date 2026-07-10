@@ -32,6 +32,7 @@
 typedef struct scc_symbol_st scc_symbol_t;
 typedef struct scc_sym_fix_st scc_sym_fix_t;
 typedef struct scc_script_st scc_script_t;
+typedef struct scc_scr_arg_st scc_scr_arg_t;
 
 /* Complete declaration of struct's & typedef's */
 /// Symbol
@@ -57,6 +58,9 @@ struct scc_symbol_st {
 
   /// Used by the linker
   char status;
+  
+  //// Added to hold script arguments if symbol is this kind
+  scc_scr_arg_t* args;
 };
 
 /// Symbol fix
@@ -83,5 +87,16 @@ struct scc_script_st {
   /// List of the symbol to fix
   scc_sym_fix_t* sym_fix;
 };
- 
- #endif /* SCC_SYM_H */
+
+enum {
+	SCRIPTCMP_EQ = 0,
+	SCRIPTCMP_NTYPE,		//Type of sym mismatch
+	SCRIPTCMP_NLEN,			//Lenght of arguments mismatch
+	SCRIPTCMP_NARGNAME,		//Name of arguments mismatch
+	SCRIPTCMP_NARGTYPE,		//Type of arguments mismatch
+	
+};
+
+int scc_sym_scriptcmp(scc_symbol_t *symA, scc_symbol_t *symB);
+
+#endif /* SCC_SYM_H */
