@@ -270,6 +270,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <intlist> synclist		//comma separated integer list
 %type <intlist> integerlist		//space separated integer list
 %type <integer> typemod
+%type <integer> arraymod
 %type <integer> natural
 
 %type <box> box_declaration box_single box_list box_points
@@ -371,21 +372,20 @@ gdecl: gvardecl
 }
 ;
 
-gvardecl: TYPE typemod SYM location
+gvardecl: TYPE typemod SYM arraymod location
 {
-	scc_symbol_t* rr;
+	if ($2 && $4)
+		SCC_ABORT(@1, "Syntax error. Double array expression with '%s'.\n", $3);
 
-	if($1 == SCC_VAR_BIT && !$2)
-		scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_BVAR,$1,$4);
-//	else
-//	{
-		rr = scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_VAR,$1 | $2,$4);
-//		if (!rr)
-//			printf("I'm returning NULL for %s \n", $3);
-//	}
-
+	if($1 == SCC_VAR_BIT && !$2 &&!$4)
+		scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_BVAR,$1,$5);
+	else
+		scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_VAR,$1 | $2 | $4, $5);
 	$$ = $1;
 }
+
+/*
+//Note. This block to be removed as SCUMM variables are only comma separated. MAN
 | gvardecl typemod SYM location
 {
 	if($1 == SCC_VAR_BIT && !$2)
@@ -395,12 +395,16 @@ gvardecl: TYPE typemod SYM location
 
 	$$ = $1;
 }
-| gvardecl ',' typemod SYM location
+*/
+| gvardecl ',' typemod SYM arraymod location
 {
-  if($1 == SCC_VAR_BIT && !$3)
-    scc_ns_decl(sccp->ns,NULL,$4,SCC_RES_BVAR,$1,$5);
-  else
-    scc_ns_decl(sccp->ns,NULL,$4,SCC_RES_VAR,$1 | $3,$5);
+	if ($3 && $5)
+		SCC_ABORT(@1, "Syntax error. Double array expression with '%s'.\n", $4);
+
+	if($1 == SCC_VAR_BIT && !$3 && !$5)
+		scc_ns_decl(sccp->ns,NULL,$4,SCC_RES_BVAR,$1,$6);
+	else
+		scc_ns_decl(sccp->ns,NULL,$4,SCC_RES_VAR,$1 | $3 | $5, $6);
 
   $$ = $1;
 }
@@ -415,6 +419,17 @@ typemod: /* nothing */
   $$ = SCC_VAR_ARRAY;
 }
 ;
+
+arraymod: /* nothing */
+{
+  $$ = 0;
+}
+| '['']'
+{
+  $$ = SCC_VAR_ARRAY;
+}
+;
+
 
 // room must be put outside of globalres
 // otherwise it conflict with roombdecl
