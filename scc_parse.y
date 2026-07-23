@@ -118,6 +118,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token OBJECT
 %token NS
 %token SCRIPT
+%token LOCAL		//variables inside a local script must be preceded by "local"
 %token VERB
 %token ACTOR
 %token COSTUMES		//SCUMM
@@ -2184,21 +2185,21 @@ vardec: vdecl NEWLINE //';'
 ;
 
 /// this will only decl local vars
-vdecl: TYPE typemod SYM
+vdecl: LOCAL TYPE typemod SYM
 {
   //if($1 == SCC_VAR_BIT)
   //  SCC_ABORT(@1,"Local bit variable are not possible.\n");
 //	printf("declare symbol '%s'at local_vars = %d\n",$3, sccp->local_vars);	//MAN 
 
-  $$ = scc_ns_decl(sccp->ns,NULL,$3,SCC_RES_LVAR,$1 | $2,sccp->local_vars);
-  if(!$$) SCC_ABORT(@1,"Declaration failed for \'%s\'.\n", $3);
+  $$ = scc_ns_decl(sccp->ns,NULL,$4,SCC_RES_LVAR,$2 | $3,sccp->local_vars);
+  if(!$$) SCC_ABORT(@1,"Declaration failed for \'%s\'.\n", $4);
   sccp->local_vars++;
 }
 
-| vdecl ',' typemod SYM
+| vdecl ',' LOCAL typemod SYM
 {
-  $$ = scc_ns_decl(sccp->ns,NULL,$4,SCC_RES_LVAR,$1->subtype | $3,sccp->local_vars);
-  if(!$$) SCC_ABORT(@4,"Declaration failed for \'%s\'.\n", $4);
+  $$ = scc_ns_decl(sccp->ns,NULL,$5,SCC_RES_LVAR,$1->subtype | $4,sccp->local_vars);
+  if(!$$) SCC_ABORT(@4,"Declaration failed for \'%s\'.\n", $5);
   sccp->local_vars++;
   $$ = $1;
 };
