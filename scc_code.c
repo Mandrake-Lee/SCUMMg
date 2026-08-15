@@ -29,6 +29,11 @@
 #include "scc_code.h"
 #include "scc_lex_bison.h"
 
+static struct scc_label_st *labelList = NULL;
+static struct scc_label_st *jumpList = NULL;
+int labelsz = 0;	//Number of labels in the list
+static scc_code_t* scriptStart = NULL;	//Whenever we start generating code of a script, the start
+
 scc_operator_t scc_bin_op[] = {
   { '+', SCC_OP_ADD, AADD },
   { '-', SCC_OP_SUB, ASUB },
@@ -46,6 +51,92 @@ scc_operator_t scc_bin_op[] = {
   { NEQ, SCC_OP_NEQ ,0 },
   { 0, 0, 0 }
 };
+
+int scc_code_absoffset()
+{
+	scc_code_t* cur;
+	int offset = 0;
+
+	//Calculate absolute offset
+	for (cur = scriptStart;cur;offset+=cur->len,cur=cur->next);
+	
+	return offset;
+}
+
+struct scc_label_st* scc_label_insert(struct scc_label_st** list, char* labelname, scc_code_t* code)
+{
+	struct scc_label_st *new = calloc(1, sizeof(struct scc_label_st));
+	struct scc_label_st *last=NULL;
+	
+	new->label = labelname;
+	new->code = code;
+	new->next = NULL;
+//	new->id = ++labelsz;
+
+	if (*list) {
+		last = *list;
+		while (last->next)
+			last = last->next;
+	}
+
+	SCC_LIST_ADD(*list, last, new);
+	return new;
+}
+
+//Search a list
+struct scc_label_st* scc_label_getbyname(struct scc_label_st **list, char* labelname)
+{
+	struct scc_label_st *cur;
+	
+	for(cur=*list;cur && strcmp(cur->label, labelname);cur=cur->next);
+
+	return cur;
+}
+
+
+//Get absolute offset from start of script. It can only be positive
+int scc_label_getabsoffset(char* labelname)
+{
+	struct scc_label_st *cur = labelList;
+	
+	while (cur && strcmp(cur->label, labelname) < 0) {
+		cur = cur->next;
+	}	
+
+	if (!cur)
+		return -1;	//Not found
+	
+	return cur->offset;
+}
+
+int scc_label_fix_code(scc_code_t* c)
+{
+	struct scc_label_st *l, *tag=NULL;
+	int pos =0, i;
+	
+	for( ; c ; c = c->next) {
+		if(c->fix != SCC_FIX_BRANCH || c->data[2] != SCC_BRANCH_JUMP)
+		{
+			pos += c->len;
+			continue;
+		}
+		//Here we're sure we have to fix the label
+		l = jumpList;
+		for(i=0;i<c->data[1];l=l->next, i++);
+
+		tag = scc_label_getbyname(&labelList, l->label);
+		if (!tag)
+		{
+			scc_log(LOG_ERR, "Label '%s' not found.\n", l->label);
+			return -1;
+		}
+
+		SCC_SET_S16LE(c->data,1, tag->offset - pos);
+		c->fix = SCC_FIX_NONE;
+		scc_log(LOG_DBG,"Fixing  JMP to label '%s' value = %d\n", tag->label, tag->offset - pos);
+	}
+	return 0;
+}
 
 scc_loop_t* scc_loop_get(int type,char* sym) {
   scc_loop_t* l;
@@ -300,6 +391,7 @@ static scc_code_t* scc_str_gen_code(scc_str_t* s) {
 
 static scc_code_t* scc_statement_gen_ref_code(scc_statement_t* st) {
   scc_code_t* code = NULL;
+  struct scc_label_st* label;
 
   switch(st->type) {
   case SCC_ST_VAR:
@@ -841,6 +933,12 @@ static scc_code_t* scc_statement_gen_code(scc_statement_t* st, int ret_val) {
     scc_log(LOG_ERR,"Got unhandled statement type: %d\n",st->type);
   }
 
+  if(st->label)
+  {
+	code->label = scc_label_insert(&labelList, st->label, code);
+	code->label->offset = scc_code_absoffset();
+  }
+  
   return code;
 
 }
@@ -1015,6 +1113,8 @@ static scc_code_t* scc_do_gen_code(scc_instruct_t* inst) {
 static scc_code_t* scc_branch_gen_code(scc_instruct_t* inst) {
   scc_code_t *code=NULL,*last=NULL,*c;
   scc_loop_t* l;
+  struct scc_label_st* label;
+  int i;
 
   if(inst->subtype == SCC_BRANCH_RETURN) {
     if(inst->pre) {
@@ -1030,27 +1130,40 @@ static scc_code_t* scc_branch_gen_code(scc_instruct_t* inst) {
     return code;
   }
 
+/*
   if(!loop_stack) {
     scc_log(LOG_ERR,"Branching instructions can't be used outside of loops.\n");
     return NULL;
   }
+*/
+	if(loop_stack)
+	{
+		l = scc_loop_get(inst->subtype,inst->sym);
+		if(!l) {
+			scc_log(LOG_ERR,"No loop named %s was found in the loop stack.\n",
+			inst->sym);
+			return NULL;
+		}
 
-  l = scc_loop_get(inst->subtype,inst->sym);
-  if(!l) {
-    scc_log(LOG_ERR,"No loop named %s was found in the loop stack.\n",
-	   inst->sym);
-    return NULL;
-  }
-
-  if(l->type == SCC_INST_SWITCH && inst->subtype == SCC_BRANCH_CONTINUE) {
-    scc_log(LOG_ERR,"Continue is not allowed in switch blocks.\n");
-    return NULL;
-  }
-
+		if(l->type == SCC_INST_SWITCH && inst->subtype == SCC_BRANCH_CONTINUE) {
+			scc_log(LOG_ERR,"Continue is not allowed in switch blocks.\n");
+			return NULL;
+		}
+	}
   c = scc_code_new(3);
   c->fix = SCC_FIX_BRANCH;
   c->data[0] = SCC_OP_JMP;
-  c->data[1] = l->id;
+  
+  if(inst->subtype == SCC_BRANCH_JUMP)
+  {
+	label=jumpList;
+	for (i=0;label;label = label->next,i++);
+	c->data[1] = i;	//Position in the list starting from 0
+	scc_label_insert(&jumpList, inst->sym, c);
+  }
+  else
+	  c->data[1] = l->id;
+  
   c->data[2] = inst->subtype;
   
   
@@ -1275,9 +1388,35 @@ scc_code_t* scc_instruct_gen_code(scc_instruct_t* inst) {
       c = NULL;
     }
     SCC_LIST_ADD(code,last,c);
+	if (!scriptStart)
+		scriptStart = code;
   }
 
   return code;
+}
+
+scc_code_t* scc_script_gen_code(scc_instruct_t* inst)
+{
+	scc_code_t* c;
+	struct scc_label_st* last;
+	int val;
+	
+	//Reset all labelling/jump system
+	SCC_LIST_FREE(labelList, last);
+	SCC_LIST_FREE(jumpList, last);
+	labelList = NULL;
+	jumpList = NULL;
+	scriptStart = NULL;
+	
+	c= scc_instruct_gen_code(inst);
+	
+	//Before returning value, patch the offsets for labels if any
+	val = scc_label_fix_code(c);
+	
+	if (val == -1)
+		return NULL;
+	
+	return c;
 }
 
 void scc_script_free(scc_script_t* scr) {

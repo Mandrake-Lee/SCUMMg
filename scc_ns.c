@@ -551,13 +551,15 @@ scc_symbol_t* scc_ns_get_sym_at(scc_ns_t* ns,int type,int addr) {
 
 scc_script_t* scc_script_new(scc_ns_t* ns, scc_instruct_t* inst,
                              uint8_t return_op,char close_scr) {
-  scc_code_t* code = scc_instruct_gen_code(inst);
+  scc_code_t* code;
   scc_sym_fix_t* rf = NULL, *rf_last = NULL, *r;
   scc_symbol_t* sym;
   int p,l;
   uint8_t* data;
   scc_script_t* scr;
   
+  code = scc_script_gen_code(inst);
+    
   if(!code) return NULL;
 
   l = scc_code_size(code) + (close_scr ? 1 : 0);

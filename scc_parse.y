@@ -109,7 +109,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token <str> SYM
 %token <integer> TYPE
 %token <integer> NUL
-
+%token <str> LABEL
 %token <integer> BRANCH RETURN
 
 %token ROOM
@@ -178,6 +178,7 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %nonassoc DO
 %nonassoc SWITCH
 %nonassoc CASE
+%nonassoc JUMP
 %nonassoc DEFAULT
 %nonassoc CUTSCENE
 %nonassoc CLASS
@@ -814,7 +815,7 @@ globalscript: globalscr_header scriptbody close_block
 {
 	scc_symbol_t *roomg;
 	scc_roobj_t *cur, *next;
-printf("global script = '%s'\n", $1->sym);
+//printf("global script = '%s'\n", $1->sym);
 //printf("Room name = %s\n", sccp->roobj->sym->sym);
 
 
@@ -2069,7 +2070,6 @@ scriptargs_explicit: '(' ')'
 /* When scriptargs are loose separated with spaces e.g. arg1 arg2 ... */
 scriptargs_loose: /* empty */
 	{
-printf("\tDetected NULL argument\n");	//DEBUG			
 		$$=NULL;	/* nothing that follows... no arguments*/
 	}
 	| typemod SYM
@@ -2239,11 +2239,12 @@ instruct: oneinstruct NEWLINE //';'
 | block
 ;
 
-oneinstruct: statements
+oneinstruct: label statements
 {
   $$ = calloc(1,sizeof(scc_instruct_t));
   $$->type = SCC_INST_ST;
-  $$->pre = $1;
+  $$->pre = $2;
+  $2->label = $1;
 }
 
 | BRANCH
@@ -2286,6 +2287,13 @@ oneinstruct: statements
   $$->subtype = $1;
   $$->pre = $2;
 }
+	| JUMP SYM
+	{
+		$$ = calloc(1,sizeof(scc_instruct_t));
+		$$->type = SCC_INST_BRANCH;
+		$$->subtype = SCC_BRANCH_JUMP;
+		$$->sym = $2;
+	}
 	| verb_statement
 	{
 		$$ = $1;
@@ -2459,11 +2467,12 @@ label: /* nothing */
 {
   $$ = NULL;
 }
-| SYM ':'
+| LABEL NEWLINE
 {
   $$ = $1;
 }
 ;
+
 
 cutsceneblock: CUTSCENE '(' cargs ')' body
 {

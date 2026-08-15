@@ -184,6 +184,7 @@
 #define SCC_BRANCH_BREAK     0
 #define SCC_BRANCH_CONTINUE  1
 #define SCC_BRANCH_RETURN    2
+#define SCC_BRANCH_JUMP		3
 //@}
 
 //@}
@@ -307,6 +308,17 @@ struct scc_code_st {
 
   uint8_t* data;
   int fix,len;
+  struct scc_label_st* label;
+};
+
+/// Label node
+struct scc_label_st
+{
+	struct scc_label_st* next;
+	char* label;
+	struct scc_code_st* code;
+	uint16_t id;
+	int offset;				//This is absolute offset since start
 };
 
 /// Operator
@@ -364,6 +376,7 @@ struct scc_op_st {
 struct scc_statement_st {
   scc_statement_t* next;
   int type;
+  char* label;
   union {
     /// Value
     uint16_t i;
@@ -477,6 +490,9 @@ void scc_script_free(scc_script_t* scr);
 
 /// Destroy a list of script
 void scc_script_list_free(scc_script_t* scr);
+
+/// Generate the code for a script
+scc_code_t* scc_script_gen_code(scc_instruct_t* inst);
 
 //@}
 

@@ -72,6 +72,7 @@ static scc_keyword_t scc_keywords[] = {
 	{ "init-animation",	INIT_ANIMATION,	-1},			//SCUMM
 	{ "int",        	TYPE,      SCC_VAR_WORD },
 	{ "is",         	IS,        -1 },
+	{ "jump",		   	JUMP,		-1 },					//SCUMM
 	{ "key",        	KEY,        -1 },
 	{ "local",      	LOCAL,		-1},					//SCUMM
 	{ "name",			NAME,		-1 },					//SCUMM
@@ -461,8 +462,32 @@ int scc_main_lexer(YYSTYPE *lvalp, YYLTYPE *llocp,scc_lex_t* lex) {
                 lvalp->integer = keyword->val;
             return keyword->type;
         }
+	
         // then it's symbol
         lvalp->str = str;
+		
+		//Now check if this is a label. Syntax is a SYM terminate with ':'. No middle separation.
+		d = scc_lex_at(lex,0);
+		if(d == ':') {
+			char e = scc_lex_at(lex,1);
+			// '::' is the namespace operator, not a label
+			// Note: this option is to be removed as SCUMM has no :: operator
+			if(e != ':') {
+				int p = 1;
+				char f;
+				while((f = scc_lex_at(lex,p)) == ' ' || f == '\t')
+					p++;
+				f = scc_lex_at(lex,p);
+				if(f == '\n' || f == 0) {
+					// eat the ':', leave the spaces/newline for the
+					// normal whitespace handling below to turn into NEWLINE
+					scc_lex_drop(lex,1);
+					return LABEL;
+				}
+			}
+		}
+
+		//If nothing else, this is a free input symbol
         return SYM;
     }
 
