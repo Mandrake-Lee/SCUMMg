@@ -1,0 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* ScummC
+ * Copyright (C) 2004-2006  Alban Bedel
+ *
+ * SCUMMg
+ * Copyright (C) 2023-2026 Jorge Amorós-Argos
+ */
+
+#undef yyparse
+#undef yylex
+#undef yyerror
+#undef sccp

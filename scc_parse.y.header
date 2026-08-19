@@ -1,0 +1,281 @@
+/* ScummC
+ * Copyright (C) 2004-2006  Alban Bedel
+ *
+ * SCUMMg
+ * Copyright (C) 2023-2024 Jorge Amorós-Argos
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ */
+
+/**
+ * @file scc_parse.y
+ * @ingroup scc
+ * @brief ScummC compiler
+ */
+%output "scc_parse_bison.c"
+%defines "scc_lex_bison.h"
+%define api.pure full
+%parse-param {struct scc_parser *v_sccp}
+%lex-param {scc_parser_t *YYLEX_PARAM}
+%define parse.error verbose
+
+%code requires {
+#define YYSTYPE scc_bison_val_t
+
+/* Forward declaration that will be completed with its related parse file .h */
+typedef union scc_bison_val_s scc_bison_val_t;
+}
+
+%code provides{
+
+}
+
+%code {
+//#define SCC_BUILD
+#include "config.h"
+#include "scc_parse.h"
+#include "scc_code.h"
+#include "scc_ns.h"
+#include "scc_lexer.h"
+
+
+#define YYERROR_VERBOSE 1
+
+#define sccp ((scc_parser_t*)v_sccp)
+#define YYLEX_PARAM sccp->lex
+
+// redefined the function names
+#define yyparse scc_parser_parse_internal
+#define yylex scc_lex_lex
+#define yyerror(loc,sccp,msg) scc_parser_error(sccp,loc,msg)
+}
+
+// Operators, the order is defining the priority.
+
+%token NEWLINE	//Acts as separator
+
+%token AADD
+%token ASUB
+%token AMUL
+%token ADIV
+%token AAND
+%token AOR
+%token INC
+%token DEC
+%token ISOLATED_INC		//MAN
+%token ISOLATED_DEC
+%token PREINC
+%token POSTINC
+%token PREDEC
+%token POSTDEC
+
+%right <integer> ASSIGN
+%right <integer> '?' ':'
+%left <integer>  LOR
+%left <integer>  LAND
+%nonassoc <integer> IS
+%left <integer>  '|'
+%left <integer>  '&'
+%left <integer>  NEQ EQ
+%left <integer>  '>' GE
+%left <integer>  '<' LE
+
+%left <integer>  '-' '+'
+%left <integer> '*' '/'
+%right <integer> NEG
+%right <integer> '!'
+%right <integer> NOT
+%nonassoc <integer> SUFFIX
+%right PREFIX
+%left POSTFIX
+
+%token <integer> INTEGER
+%token <integer> RESTYPE
+%token <str> STRING
+%token <strvar> STRVAR
+%token <str> SYM
+%token <integer> TYPE
+%token <integer> NUL
+%token <str> LABEL
+%token <integer> BRANCH RETURN
+
+%token ROOM
+%token ENTER		//enter script in a room
+%token EXIT			//exit script in a room
+%token OBJECT
+%token NS
+%token SCRIPT
+%token LOCAL		//variables inside a local script must be preceded by "local"
+%token VERB
+%token ACTOR
+%token COSTUMES		//SCUMM
+%token SOUNDS		//SCUMM
+%token VOICE
+%token CYCL
+
+%token FLEM			//Extended SCUMM language to fit room command lines
+
+%token NAME		//Used for objects
+/* This chunk below for verb options */
+%token NEW
+%token COLOR
+%token DIMCOLOR
+%token HICOLOR
+%token BAKCOLOR
+%token AT
+%token KEY
+%token <integer> ON
+%token <integer> OFF
+%token <integer> DIM
+%token CENTER
+%token IMAGE
+
+/* This chunk for actor options */
+%token COSTUME
+%token TALK_COLOR
+%token STEP_DIST
+%token TEXT_OFFSET
+%token ELEVATION
+%token ANIMATION
+%token WALK_ANIMATION
+%token TALK_ANIMATION
+%token STAND_ANIMATION
+%token INIT_ANIMATION
+%token ANIMATION_SPEED
+%token SCALE
+%token ZCLIP
+%token IGNORE_BOXES
+%token FOLLOW_BOXES
+%token WIDTH
+%token SPECIAL_DRAW
+%token STOP
+%token TURN
+%token FACE
+%token WALK_PAUSE
+%token WALK_RESUME
+%token VOLUME
+%token FREQUENCY
+%token PAN
+
+%nonassoc <integer> IF
+%nonassoc ELSE
+%nonassoc FOR
+%nonassoc TO
+%nonassoc <integer> WHILE
+%nonassoc DO
+%nonassoc SWITCH
+%nonassoc CASE
+%nonassoc JUMP
+%nonassoc DEFAULT
+%nonassoc CUTSCENE
+%nonassoc CLASS
+%nonassoc TRY
+%nonassoc OVERRIDE
+
+%token <integer> SCRTYPE
+
+%token ERROR
+
+%type <strvar> str
+%type <strvar> string
+%type <integer> location
+%type <st> dval
+
+%type <st> cargs
+%type <st> space_args
+%type <st> var
+%type <st> call
+
+%type <st> isargs
+%type <st> isarglist
+%type <st> isarg
+
+%type <sym> vdecl
+
+%type <st> statement
+%type <st> restricted_statement
+%type <verbst> verb_options
+%type <st> statements
+%type <st> opt_statements
+%type <inst> verb_statement
+%type <inst> instruct
+%type <inst> ifblock
+%type <integer> for_ops		//Actually returning INC or DEC
+%type <st> caseval
+%type <st> caseblock
+%type <inst> switchblock
+%type <inst> switchblock2
+%type <st> caseheader
+%type <inst> loopblock
+%type <inst> cutsceneblock
+%type <inst> block
+%type <inst> instructions
+%type <inst> oneinstruct
+%type <inst> dobody
+%type <inst> body
+%type <inst> loophead
+%type <str> label
+%type <inst> dohead
+%type <inst> switchhead
+%type <scr> scriptbody
+%type <inst> verbcode
+%type <sym> verbentry
+%type <vscr> verbsblock
+%type <vscr> verb_open_block
+%type <symlist> verb_symbols
+%type <strlist> verb_symbols2
+%type <strlist> verb_header
+%type <sym> actor_header
+%type <actorst> actor_options
+%type <inst> actor_statement
+%type <sympath> sympath sympath_list
+%type <integer> gvardecl
+%type <integer> gresdecl
+%type <integer> groomresdecl
+%type <integer> globalres
+%type <integer> roomres
+%type <integer> resdecl
+%type <integer> verb_visualoptions
+%type <str> resdef
+%type <integer> scripttype
+
+%type <arg> scriptargs
+%type <arg> scriptargs_explicit
+%type <arg> scriptargs_loose
+%type <arg> scriptargs_all
+%type <sym> globalscrdecl2
+%type <arg> symlist_commasep
+%type <sym> roomscrdecl
+%type <sym> roomscrdecl2
+%type <sym> enterscr_header
+%type <sym> exitscr_header
+%type <sym> globalscrdecl
+%type <sym> globalscr_header
+%type <sym> roomobjdecl
+%type <sym> roomobjdecl2
+%type <sym> cycledecl
+%type <sym> voicedecl
+%type <strlist> zbufs
+%type <intlist> synclist		//comma separated integer list
+%type <intlist> integerlist		//space separated integer list
+%type <integer> typemod
+%type <integer> arraymod
+%type <integer> natural
+
+%type <box> box_declaration box_single box_list box_points
+%type <scal> scal_declaration scal_single scal_list
+%type <intpair> numberpair
+%type <integer> number

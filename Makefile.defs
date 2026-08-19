@@ -95,6 +95,10 @@ undefine MINGW
 $(info MINGW $(TARGET))
 endif
 
+HEADER_Y := scc_parse.y.header
+RULES_Y := rules_grammar.y rules_actor.y rules_verb.y
+TAIL_Y := scc_parse.y.tail
+
 scc_SRCS=                       \
 	scc_parse_bison.c       \
 	scc_parse.c				\
@@ -113,6 +117,8 @@ scc_SRCS=                       \
 	tinycpp/preproc.c		\
 	tinycpp/tokenizer.c		\
 	scc_box.c				\
+	scc_sound.c				\
+	scc_sym.c				\
 	scc_main.c		        \
 
 #This line to be removed after debugging
