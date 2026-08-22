@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /* ScummC
  * Copyright (C) 2004-2006  Alban Bedel
  *

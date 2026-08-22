@@ -1,23 +1,10 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /* ScummC
  * Copyright (C) 2004-2006  Alban Bedel
  *
  * SCUMMg
- * Copyright (C) 2023-2024 Jorge Amorós-Argos
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- *
+ * Copyright (C) 2023-2026 Jorge Amorós-Argos
  */
 
 /**
@@ -170,6 +157,14 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token FREQUENCY
 %token PAN
 
+/* This chunk is for cursor & userput */
+%token CURSOR
+%token HOTSPOT
+%token SOFT_ON
+%token SOFT_OFF
+%token TRANSPARENT
+%token USERPUT
+
 %nonassoc <integer> IF
 %nonassoc ELSE
 %nonassoc FOR
@@ -211,6 +206,9 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <st> statements
 %type <st> opt_statements
 %type <inst> verb_statement
+%type <inst> cursor_statement
+%type <inst> userput_statement
+%type <st> cursor_image
 %type <inst> instruct
 %type <inst> ifblock
 %type <integer> for_ops		//Actually returning INC or DEC

@@ -61,43 +61,44 @@ const scc_func_t scc_func_v6_v7[] = {
     { SCC_FA_VAL }
   },{
 
-    "cursorOn",0x6B90, 0, 0, 0,
+    "_cursorOn",0x6B90, 0, 0, 0,
     {}
   },{
-    "cursorOff",0x6B91, 0, 0, 0,
+    "_cursorOff",0x6B91, 0, 0, 0,
     {}
   },{
-    "userPutOn",0x6B92, 0, 0, 0,
+    "_userPutOn",0x6B92, 0, 0, 0,
     {}
   },{
-    "userPutOff",0x6B93, 0, 0, 0,
+    "_userPutOff",0x6B93, 0, 0, 0,
     {}
   },{
-    "softCursorOn", 0x6B94, 0, 0, 0,
+    "_softCursorOn", 0x6B94, 0, 0, 0,
     {}
   },{
-    "softCursorOff", 0x6B95, 0, 0, 0,
+    "_softCursorOff", 0x6B95, 0, 0, 0,
     {}
   },{
-    "softUserPutOn", 0x6B96, 0, 0, 0,
+    "_softUserPutOn", 0x6B96, 0, 0, 0,
     {}
   },{
-    "softUserPutOff", 0x6B97, 0, 0, 0,
+    "_softUserPutOff", 0x6B97, 0, 0, 0,
     {}
   },{
-    "setCursorImage", 0x6B99, 0, 2, 0, // z
+    "_setCursorImage", 0x6B99, 0, 2, 0, // z
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
     "setCursorHotspot", 0x6B9A, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "initCharset", 0x6B9C, 0, 1, 0,
+//    "initCharset", 0x6B9C, 0, 1, 0,
+	"charset", 0x6B9C, 0, 1, 0,
     { SCC_FA_VAL }
   },{
     "setCharsetColors", 0x6B9D, 0, 1, 0,
     { SCC_FA_LIST }
   },{
-    "setCursorTransparency", 0x6BD6, 0, 1, 0,
+    "_setCursorTransparency", 0x6BD6, 0, 1, 0,
     { SCC_FA_VAL }
 
   },{
@@ -119,7 +120,8 @@ const scc_func_t scc_func_v6_v7[] = {
     "setObjectOwner", 0x71, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "getObjectOwner", 0x72, 1, 1, 0,
+//    "getObjectOwner", 0x72, 1, 1, 0,
+	"owner-of", 0x72, 1, 1, 0,
     { SCC_FA_VAL }
   },{
     "startSound", 0x74, 0, 1, 0,
@@ -137,7 +139,8 @@ const scc_func_t scc_func_v6_v7[] = {
     "cameraFollowActor", 0x79, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "startRoom", 0x7B, 0, 1, 0,
+//    "startRoom", 0x7B, 0, 1, 0,
+	"current-room", 0x7B, 0, 1, 0,
     { SCC_FA_VAL }
   },{
     "stopScript", 0x7C, 0, 1, 0,
@@ -156,7 +159,8 @@ const scc_func_t scc_func_v6_v7[] = {
     "actorFace", 0x81, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "animateActor", 0x82, 0, 2, 0,
+//    "animateActor", 0x82, 0, 2, 0,
+	"do-animation", 0x82, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
     "doSentence", 0x83, 0, 4, 0,
@@ -216,58 +220,60 @@ const scc_func_t scc_func_v6_v7[] = {
     {}
   },{
 
-    "loadScript", 0x9B64, 0, 1, 0,
+    "load-script", 0x9B64, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "loadSound", 0x9B65, 0, 1, 0,
+    "load-sound", 0x9B65, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "loadCostume", 0x9B66, 0, 1, 0,
+    "load-costume", 0x9B66, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "loadRoom", 0x9B67, 0, 1, 0,
+    "load-room", 0x9B67, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "nukeScript", 0x9B68, 0, 1, 0,
+    "nuke-script", 0x9B68, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "nukeSound", 0x9B69, 0, 1, 0,
+    "nuke-sound", 0x9B69, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "nukeCostume", 0x9B6A, 0, 1, 0,
+    "nuke-costume", 0x9B6A, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "nukeRoom", 0x9B6B, 0, 1, 0,
+    "nuke-room", 0x9B6B, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "lockScript", 0x9B6C, 0, 1, 0,
+    "lock-script", 0x9B6C, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "lockSound", 0x9B6D, 0, 1, 0,
+    "lock-sound", 0x9B6D, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "lockCostume", 0x9B6E, 0, 1, 0,
+    "lock-costume", 0x9B6E, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "lockRoom", 0x9B6F, 0, 1, 0,
+    "lock-room", 0x9B6F, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "unlockScript", 0x9B70, 0, 1, 0,
+    "unlock-script", 0x9B70, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "unlockSound", 0x9B71, 0, 1, 0,
+    "unlock-sound", 0x9B71, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "unlockCostume", 0x9B72, 0, 1, 0,
+    "unlock-costume", 0x9B72, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "unlockRoom", 0x9B73, 0, 1, 0,
+    "unlock-room", 0x9B73, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "loadCharset", 0x9B75, 0, 1, 0,
+//    "loadCharset", 0x9B75, 0, 1, 0,
+	"load-charset", 0x9B75, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "nukeCharset", 0x9B76, 0, 1, 0,
+//    "nukeCharset", 0x9B76, 0, 1, 0,
+	"nuke-charset", 0x9B76, 0, 1, 0,
     { SCC_FA_VAL }
   },{
     "loadFlObject", 0x9B77, 0, 2, 0,
@@ -277,7 +283,8 @@ const scc_func_t scc_func_v6_v7[] = {
     "setRoomScroll", 0x9CAC, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "setScreen", 0x9CAE, 0, 2, 0,
+//    "setScreen", 0x9CAE, 0, 2, 0,
+	"set-screen", 0x9CAE, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
     "setRoomColor", 0x9CAF, 0, 4, 0,
@@ -427,7 +434,7 @@ const scc_func_t scc_func_v6_v7[] = {
     "_actorUnfreeze", 0x9DEA, 0, 0, 0,
     {}
   },{
-    "setActorTalkScript", 0x9DEB, 0, 1, 0,
+    "_setActorTalkScript", 0x9DEB, 0, 1, 0,
     { SCC_FA_VAL }
   },{
 
@@ -515,34 +522,34 @@ const scc_func_t scc_func_v6_v7[] = {
     { SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL }
   },{
 
-    "drawBox", 0xA6, 0, 5, 0,
+    "draw-box", 0xA6, 0, 5, 0,
     { SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL  }
   },{
-    "getActorWidth", 0xA8, 1, 1, 0,
+    "actor-width", 0xA8, 1, 1, 0,
     { SCC_FA_VAL }
   },{
 
-    "waitForActor", 0xA9A8, 0, 1, 1,
+    "wait-for-actor", 0xA9A8, 0, 1, 1,
     { SCC_FA_VAL, SCC_FA_SELF_OFF }
   },{
 
-    "waitForMessage", 0xA9A9, 0, 0, 0,
+    "wait-for-message", 0xA9A9, 0, 0, 0,
     {}
   },{
-    "waitForCamera", 0xA9AA, 0, 0, 0,
+    "wait-for-camera", 0xA9AA, 0, 0, 0,
     {}
   },{
-    "waitForSentence", 0xA9AB, 0, 0, 0,
+    "wait-for-sentence", 0xA9AB, 0, 0, 0,
     {}
   },{
-    "waitForAnimation", 0xA9E2, 0, 1, 1,
+    "wait-for-animation", 0xA9E2, 0, 1, 1,
     { SCC_FA_VAL, SCC_FA_SELF_OFF }
   },{
-    "waitForTurn", 0xA9E8, 0, 1, 1,
+    "wait-for-turn", 0xA9E8, 0, 1, 1,
     { SCC_FA_VAL, SCC_FA_SELF_OFF }
   },{
 
-    "getActorXScale", 0xAA, 1, 1, 0,
+    "actor-scale", 0xAA, 1, 1, 0,
     { SCC_FA_VAL }
   },{
     "getActorAnimCounter1", 0xAB, 1, 1, 0,

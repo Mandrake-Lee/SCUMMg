@@ -1999,7 +1999,11 @@ oneinstruct: label statements
 	| actor_statement
 	{
 		$$ = $1;
-	}	
+	}
+	| cursor_statement
+	{
+		$$ = $1;
+	}
 	;
 
 

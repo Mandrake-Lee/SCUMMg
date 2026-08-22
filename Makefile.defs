@@ -96,7 +96,7 @@ $(info MINGW $(TARGET))
 endif
 
 HEADER_Y := scc_parse.y.header
-RULES_Y := rules_grammar.y rules_actor.y rules_verb.y
+RULES_Y := rules_grammar.y rules_actor.y rules_verb.y rules_interface.y
 TAIL_Y := scc_parse.y.tail
 
 scc_SRCS=                       \
