@@ -2004,6 +2004,10 @@ oneinstruct: label statements
 	{
 		$$ = $1;
 	}
+	| room_statement
+	{
+		$$ = $1;
+	}
 	;
 
 

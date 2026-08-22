@@ -283,8 +283,7 @@ const scc_func_t scc_func_v6_v7[] = {
     "setRoomScroll", 0x9CAC, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
-//    "setScreen", 0x9CAE, 0, 2, 0,
-	"set-screen", 0x9CAE, 0, 2, 0,
+    "_setScreen", 0x9CAE, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_VAL }
   },{
     "setRoomColor", 0x9CAF, 0, 4, 0,

@@ -165,6 +165,9 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token TRANSPARENT
 %token USERPUT
 
+/* This chunk is for room related things*/
+%token SET_SCREEN
+
 %nonassoc <integer> IF
 %nonassoc ELSE
 %nonassoc FOR
@@ -209,6 +212,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <inst> cursor_statement
 %type <inst> userput_statement
 %type <st> cursor_image
+%type <inst> room_statement
+
 %type <inst> instruct
 %type <inst> ifblock
 %type <integer> for_ops		//Actually returning INC or DEC

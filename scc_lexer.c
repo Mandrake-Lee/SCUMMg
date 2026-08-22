@@ -49,6 +49,7 @@ static scc_keyword_t scc_keywords[] = {
 	{ "cost",       	RESTYPE,   SCC_RES_COST },
 	{ "costume",		COSTUME,	-1 },					//SCUMM
 	{ "costumes",      	COSTUMES,	-1},					//SCUMM
+	{ "cursor",      	CURSOR,		-1},					//SCUMM	
 	{ "cutscene",   	CUTSCENE,  -1 },
 	{ "cycle",      	CYCL,      -1 },
 	{ "default",    	DEFAULT,   -1 },
@@ -87,8 +88,11 @@ static scc_keyword_t scc_keywords[] = {
 	{ "pan",			PAN,				-1},			//SCUMM	
 	{ "return",    		RETURN,    SCC_BRANCH_RETURN },
 	{ "room",       	ROOM,      -1 },
-	{ "scale",			SCALE,		-1 },	//SCUMM	
+	{ "scale",			SCALE,		-1 },					//SCUMM	
 	{ "script",     	SCRIPT,    -1 },
+	{ "set-screen",    	SET_SCREEN,		-1 },				//SCUMM
+	{ "soft-off",     	SOFT_OFF,	-1 },					//SCUMM	
+	{ "soft-on",     	SOFT_ON,	-1 },					//SCUMM
 	{ "sound",      	RESTYPE,   SCC_RES_SOUND },
 	{ "sounds",			SOUNDS,		-1 },					//SCUMM
 	{ "special-draw",	SPECIAL_DRAW,		-1},			//SCUMM
@@ -102,11 +106,13 @@ static scc_keyword_t scc_keywords[] = {
 //	{ "to-boxes",		TO_BOXES,	-1 },					//SCUMM		//These are #define in fact
 //	{ "to-nothing",		TO_NOTHING,	-1 },					//SCUMM
 //	{ "to-zclip1",		TO_ZCLIP1,	-1 },					//SCUMM	
+	{ "transparanet",	TRANSPARENT,-1 },					//SCUMM
 	{ "try",        	TRY,       -1 },
 	{ "turn",			TURN,       -1 },					//SCUMM
 	{ "unless",     	IF,        1 },
-	{ "until",      	WHILE,     		1 },						//SCUMM
-	{ "variable",		TYPE,			SCC_VAR_BYTE },			//SCUMM	
+	{ "until",      	WHILE,     		1 },				//SCUMM
+	{ "userput",		USERPUT,		-1},				//SCUMM	
+	{ "variable",		TYPE,			SCC_VAR_BYTE },		//SCUMM	
 	{ "verb",       	VERB,     		-1 },
 	{ "voice",      	VOICE,     		-1 },
 	{ "volume",			VOLUME,			-1 },	
