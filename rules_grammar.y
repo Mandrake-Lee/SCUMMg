@@ -2008,6 +2008,10 @@ oneinstruct: label statements
 	{
 		$$ = $1;
 	}
+	| scripts_statement
+	{
+		$$ = $1;
+	}
 	;
 
 

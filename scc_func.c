@@ -24,10 +24,10 @@
  
 const scc_func_t scc_func_v6_v7[] = {
   {
-    "startScript", 0x5E, 0, 3, 0,
+    "_startScript", 0x5E, 0, 3, 0,
     { SCC_FA_VAL, SCC_FA_VAL, SCC_FA_LIST }
   },{
-    "startScript0", 0x5F, 0, 2, 0,
+    "_startScript0", 0x5F, 0, 2, 0,
     { SCC_FA_VAL, SCC_FA_LIST }
   },{
     "startObject", 0x60, 0, 4, 0,
@@ -727,7 +727,7 @@ const scc_func_t scc_func_v6_v7[] = {
     { SCC_FA_VAL, SCC_FA_VAL, SCC_FA_LIST }
   },{
 
-    "startScript2", 0xBF, 0, 2, 0,
+    "_startScript2", 0xBF, 0, 2, 0,
     // script,    args
     { SCC_FA_VAL, SCC_FA_LIST }
   },{

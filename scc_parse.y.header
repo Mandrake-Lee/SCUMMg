@@ -168,6 +168,11 @@ typedef union scc_bison_val_s scc_bison_val_t;
 /* This chunk is for room related things*/
 %token SET_SCREEN
 
+/* This chunk for scripts & objects related things */
+%token START_SCRIPT
+%token REK
+%token BAK
+
 %nonassoc <integer> IF
 %nonassoc ELSE
 %nonassoc FOR
@@ -213,6 +218,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <inst> userput_statement
 %type <st> cursor_image
 %type <inst> room_statement
+%type <inst> scripts_statement
+%type <integer> scripts_opt
 
 %type <inst> instruct
 %type <inst> ifblock

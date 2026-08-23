@@ -97,6 +97,7 @@ static scc_keyword_t scc_keywords[] = {
 	{ "sounds",			SOUNDS,		-1 },					//SCUMM
 	{ "special-draw",	SPECIAL_DRAW,		-1},			//SCUMM
 	{ "stand-animation",STAND_ANIMATION,	-1 },			//SCUMM
+	{ "start-script",	START_SCRIPT,		-1 },			//SCUMM	
 	{ "step-dist",		STEP_DIST,	-1 },					//SCUMM	
 	{ "stop",			STOP,		-1 },					//SCUMM	
 	{ "switch",     	SWITCH,    -1 },

@@ -59,6 +59,10 @@
 #define SCC_VAR_ARRAY   0x100
 //@}
 
+#define FLAG_BAK	1<<0
+#define FLAG_REK	1<<1
+
+
 /* Forward declaration of struct's & typedef's */
 typedef struct scc_arg_st scc_arg_t;
 typedef struct scc_verb_script_st scc_verb_script_t;
