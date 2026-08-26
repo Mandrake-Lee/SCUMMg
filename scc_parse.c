@@ -516,3 +516,42 @@ scc_instruct_t* scc_statement_build_actor(scc_parser_t* sccp, scc_symbol_t* asym
 	}	
 	return actorcode;
 }
+
+int scc_fetch_sym(scc_parser_t* sccp, char* sym, int type, scc_symbol_t** s, char** error)
+{
+	char* symtarget;
+	/* Verify that symbol is of class room, it has to be predeclared */
+	*s = scc_ns_get_sym(sccp->ns,NULL,sym);
+	*error = NULL;
+	
+	switch (type)
+	{
+		case SCC_RES_ROOM:	symtarget = strdup("room");
+							break;
+		case SCC_RES_ACTOR:	symtarget = strdup("actor");
+							break;
+		case SCC_RES_COST:	symtarget = strdup("costume");
+							break;
+		case SCC_RES_OBJ:	symtarget = strdup("object");
+							break;						
+		default:		symtarget = strdup("resource");
+	}
+	
+	if(!*s)
+		asprintf(error, "'%s' is not a predeclared %s.\n", sym, symtarget);
+//		*error = strdup(printf("'%s' is not a predeclared %s.\n", sym, symtarget));
+	else if((*s)->type != type)
+		asprintf(error, "'%s' exists but it's not a %s.\n", sym, symtarget);
+//		*error = strdup(printf("'%s' exists but it's not a %s.\n", sym, symtarget));		
+
+	free(symtarget);
+
+	if(*error)
+		return -1;
+
+	// allocate an rid
+	if(!(*s)->rid)
+		scc_ns_get_rid(sccp->ns, *s);
+
+	return 0;
+}

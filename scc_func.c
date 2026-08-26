@@ -152,7 +152,7 @@ const scc_func_t scc_func_v6_v7[] = {
     "walkActorTo", 0x7E, 0, 3, 0,
     { SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL }
   },{
-    "putActorAt", 0x7F, 0, 4, 0,
+    "_putActorAt", 0x7F, 0, 4, 0,
     { SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL|SCC_FA_DEFAULT },
     { 0,          0,          0,          0xFF }
   },{
@@ -880,7 +880,7 @@ static scc_func_t scc_func_v6_only[] = {
     "setCameraAt", 0x7A, 0, 1, 0,
     { SCC_FA_VAL }
   },{
-    "putActorAtObject", 0x80, 0, 3, 0, // z
+    "_putActorAtObject", 0x80, 0, 3, 0, // z
     { SCC_FA_VAL, SCC_FA_VAL, SCC_FA_VAL }
   },{
     "pickupObject", 0x84, 0, 2, 0,  // z

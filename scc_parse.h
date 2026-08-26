@@ -88,6 +88,7 @@ char* scc_statement_check_func(scc_call_t* c);
 scc_instruct_t* scc_instruction_call(scc_parser_t* sccp, char* fname, scc_statement_t* args);
 scc_instruct_t* scc_statement_build_verb(scc_parser_t* sccp, scc_symbol_t* vsym, scc_verb_statement_t* vst);
 scc_instruct_t* scc_statement_build_actor(scc_parser_t* sccp, scc_symbol_t* asym, scc_actor_statement_t* ast);
+int scc_fetch_sym(scc_parser_t* sccp, char* sym, int type, scc_symbol_t** s, char** error);
 /* Macros used exclusively in parse scc_parse.y file */
 #define SCC_BOP(d,bop,a,cop,b) {                              \
   if(a->type == SCC_ST_VAL &&                                 \
@@ -140,13 +141,13 @@ typedef union scc_bison_val_s {
   scc_script_t* scr;
   scc_str_t* strvar;
   int* intlist;
-  int intpair[2];					//Hold x,y duples
+  int intpair[2];						//Hold x,y duples
   scc_verb_script_t* vscr;
-  scc_verb_statement_t* verbst;		//verb as single statement
-  scc_actor_statement_t* actorst;	//actor as single statement
-  scc_box_t* box;					//box single or list
-  scc_scale_slot_t* scal;			//scale slots
-  scc_sympath_t* sympath;			//list of symbols & paths, used for resources
+  scc_verb_statement_t* verbst;			//verb as single statement
+  scc_actor_statement_t* actorst;		//actor as single statement
+  scc_box_t* box;						//box single or list
+  scc_scale_slot_t* scal;				//scale slots
+  scc_sympath_t* sympath;				//list of symbols & paths, used for resources
 } scc_bison_val_t;
 
 typedef struct scc_parser {
@@ -211,6 +212,5 @@ struct scc_actor_statement_st
 	scc_statement_t *turn, *face;	//In degrees
 	scc_statement_t *volume, *frequency, *pan;
 };
-
 
 #endif /* SCC_PARSE_H */

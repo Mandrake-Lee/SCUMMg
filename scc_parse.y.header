@@ -156,6 +156,10 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token VOLUME
 %token FREQUENCY
 %token PAN
+%token PUT_ACTOR
+%token IN_THE_VOID
+%token IN_ROOM
+
 
 /* This chunk is for cursor & userput */
 %token CURSOR
@@ -251,6 +255,9 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <sym> actor_header
 %type <actorst> actor_options
 %type <inst> actor_statement
+%type <st> putactor_header
+%type <st> putactor_options
+%type <inst> putactor_statement
 %type <sympath> sympath sympath_list
 %type <integer> gvardecl
 %type <integer> gresdecl

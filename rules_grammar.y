@@ -2012,6 +2012,10 @@ oneinstruct: label statements
 	{
 		$$ = $1;
 	}
+	| putactor_statement
+	{
+		$$ = $1;
+	}
 	;
 
 

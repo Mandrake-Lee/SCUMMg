@@ -70,6 +70,8 @@ static scc_keyword_t scc_keywords[] = {
 	{ "if",         	IF,        0 },
 	{ "ignore-boxes",	IGNORE_BOXES,	-1 },				//SCUMM
 	{ "image",			IMAGE,		-1 },					//SCUMM
+	{ "in-room",		IN_ROOM,	-1 },					//SCUMM		
+	{ "in-the-void",	IN_THE_VOID,-1 },					//SCUMM	
 	{ "init-animation",	INIT_ANIMATION,	-1},			//SCUMM
 	{ "int",        	TYPE,      SCC_VAR_WORD },
 	{ "is",         	IS,        -1 },
@@ -85,7 +87,8 @@ static scc_keyword_t scc_keywords[] = {
 	{ "off",			OFF,		-1},					//SCUMM
 	{ "on",				ON,			-1},					//SCUMM
 	{ "override",   	OVERRIDE,  -1 },
-	{ "pan",			PAN,				-1},			//SCUMM	
+	{ "pan",			PAN,				-1},			//SCUMM
+	{ "put-actor",		PUT_ACTOR,	-1},					//SCUMM		
 	{ "return",    		RETURN,    SCC_BRANCH_RETURN },
 	{ "room",       	ROOM,      -1 },
 	{ "scale",			SCALE,		-1 },					//SCUMM	

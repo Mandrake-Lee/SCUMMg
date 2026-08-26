@@ -187,17 +187,133 @@ actor_options
 actor_statement
 	: actor_header actor_options
 	{
-		scc_statement_t *st = NULL;
+		scc_instruct_t *inst = NULL;
 		scc_actor_statement_t *actorop = $2;
 		scc_symbol_t* actorsym = $1;
 
-		st = scc_statement_build_actor(sccp, actorsym, actorop);
+		inst = scc_statement_build_actor(sccp, actorsym, actorop);
 
-		if(!st)
+		if(!inst)
 			SCC_ABORT(@1, "Why this is null?");
 
-		$$ = st;
+		$$ = inst;
 
 		//Free memory
 		free($2);		
 	}
+
+putactor_header
+	: PUT_ACTOR SYM
+	{
+		scc_statement_t *a;
+		scc_symbol_t* actorsym;
+		char* error = NULL;
+
+		scc_fetch_sym(sccp, $2, SCC_RES_ACTOR, &actorsym, &error);
+
+		if(error)
+			SCC_ABORT(@2,"%s",error);	//Here there will be a memory leak
+		
+		a = calloc(1,sizeof(scc_statement_t));
+		a->type = SCC_ST_RES;
+		a->val.r = actorsym;
+		
+		$$ = a;
+	}	
+
+
+putactor_options
+	: /*empty*/
+	{
+		scc_statement_t *a;
+		a = calloc(1,sizeof(scc_statement_t));
+		a->type = SCC_ST_VAL;
+		a->val.i = 0xFF;		//This is special code for "in the same room"
+		
+		$$ = a;
+	}
+	| IN_ROOM SYM
+	{
+		scc_statement_t *a;
+		scc_symbol_t* roomsym;
+		char* error = NULL;
+
+		scc_fetch_sym(sccp, $2, SCC_RES_ROOM, &roomsym, &error);
+
+		if(error)
+			SCC_ABORT(@2,"%s",error);	//Here there will be a memory leak
+		
+		a = calloc(1,sizeof(scc_statement_t));
+		a->type = SCC_ST_RES;
+		a->val.r = roomsym;
+		
+		$$ = a;
+	}
+	;
+
+
+putactor_statement
+	: putactor_header AT INTEGER ',' INTEGER putactor_options
+	{
+		scc_statement_t *x, *y;
+		
+		x = calloc(1,sizeof(scc_statement_t));
+		x->type = SCC_ST_VAL;
+		x->val.i = $3;
+		
+		y = calloc(1,sizeof(scc_statement_t));
+		y->type = SCC_ST_VAL;
+		y->val.i = $5;		
+
+		//Chain everything
+		$1->next = x;
+		x->next = y;
+		y->next = $6;
+		
+		$$ = scc_instruction_call(sccp, "_putActorAt", $1);
+	}
+	| putactor_header AT SYM putactor_options
+	{
+		scc_statement_t *a;
+		scc_symbol_t* objsym;
+		char* error = NULL;
+
+		scc_fetch_sym(sccp, $3, SCC_RES_OBJ, &objsym, &error);
+		
+		if(error)
+			SCC_ABORT(@2,"%s",error);	//Here there will be a memory leak
+		
+		a = calloc(1,sizeof(scc_statement_t));
+		a->type = SCC_ST_RES;
+		a->val.r = objsym;
+		
+		//Chain everything
+		a->next = $4;
+		$1->next = a;
+		
+		$$ = scc_instruction_call(sccp, "_putActorAtObject", $1);		
+	}
+	| putactor_header IN_THE_VOID
+	{
+		scc_statement_t *a, *x, *y;
+		
+		a = calloc(1,sizeof(scc_statement_t));
+		a->type = SCC_ST_VAL;
+		a->val.i = 0x00;		//This is the actual room id for "the-void"	
+		
+		x = calloc(1,sizeof(scc_statement_t));
+		x->type = SCC_ST_VAL;
+		x->val.i = 0;
+		
+		y = calloc(1,sizeof(scc_statement_t));
+		y->type = SCC_ST_VAL;
+		y->val.i = 0;		
+	
+		//Chain everything
+		x->next = y;
+		y->next = a;
+		$1->next = x;
+		
+		$$ = scc_instruction_call(sccp, "_putActorAt", $1);		
+	}
+	;
