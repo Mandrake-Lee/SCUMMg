@@ -2016,6 +2016,14 @@ oneinstruct: label statements
 	{
 		$$ = $1;
 	}
+	| print_statement
+	{
+		$$ = $1;
+	}
+	| sayline_statement
+	{
+		$$ = $1;	
+	}
 	;
 
 

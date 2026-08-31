@@ -177,6 +177,18 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %token REK
 %token BAK
 
+/* This chunk for print related things */
+%token OVERHEAD
+%token LEFT
+%token CLIPPED
+%token MUMBLE
+%token PRINT_LINE
+%token PRINT_TEXT
+%token PRINT_DEBUG
+%token PRINT_SYSTEM
+%token PRINT_CURSOR
+%token SAY_LINE
+
 %nonassoc <integer> IF
 %nonassoc ELSE
 %nonassoc FOR
@@ -220,6 +232,8 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <inst> verb_statement
 %type <inst> cursor_statement
 %type <inst> userput_statement
+%type <inst> print_statement
+%type <inst> sayline_statement
 %type <st> cursor_image
 %type <inst> room_statement
 %type <inst> scripts_statement
@@ -258,6 +272,9 @@ typedef union scc_bison_val_s scc_bison_val_t;
 %type <st> putactor_header
 %type <st> putactor_options
 %type <inst> putactor_statement
+%type <printst> print_options
+%type <integer> print_header				//Returns type of print
+%type <st> sayline_header
 %type <sympath> sympath sympath_list
 %type <integer> gvardecl
 %type <integer> gresdecl

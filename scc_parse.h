@@ -72,6 +72,7 @@ typedef struct scc_parser scc_parser_t;
 
 typedef struct scc_verb_statement_st scc_verb_statement_t;	//Support of verb as single statement
 typedef struct scc_actor_statement_st scc_actor_statement_t;	//Support for actor as single statement
+typedef struct scc_print_statement_st scc_print_statement_t;	//Support for actor as single statement
 typedef struct scc_decl_st scc_decl_t;	/* Never in use? WOW! */
 
 
@@ -88,6 +89,7 @@ char* scc_statement_check_func(scc_call_t* c);
 scc_instruct_t* scc_instruction_call(scc_parser_t* sccp, char* fname, scc_statement_t* args);
 scc_instruct_t* scc_statement_build_verb(scc_parser_t* sccp, scc_symbol_t* vsym, scc_verb_statement_t* vst);
 scc_instruct_t* scc_statement_build_actor(scc_parser_t* sccp, scc_symbol_t* asym, scc_actor_statement_t* ast);
+scc_instruct_t* scc_statement_build_print(scc_parser_t* sccp, int printtype, scc_print_statement_t* pst);
 int scc_fetch_sym(scc_parser_t* sccp, char* sym, int type, scc_symbol_t** s, char** error);
 /* Macros used exclusively in parse scc_parse.y file */
 #define SCC_BOP(d,bop,a,cop,b) {                              \
@@ -145,6 +147,7 @@ typedef union scc_bison_val_s {
   scc_verb_script_t* vscr;
   scc_verb_statement_t* verbst;			//verb as single statement
   scc_actor_statement_t* actorst;		//actor as single statement
+  scc_print_statement_t* printst;		//print as single statement
   scc_box_t* box;						//box single or list
   scc_scale_slot_t* scal;				//scale slots
   scc_sympath_t* sympath;				//list of symbols & paths, used for resources
@@ -185,6 +188,14 @@ enum {
 	ACTOR_WALKRESUME
 };
 
+enum {
+	OP_PRINT_LINE,
+	OP_PRINT_TEXT,
+	OP_PRINT_DEBUG,
+	OP_PRINT_SYSTEM,
+	OP_SAY_LINE
+};
+
 struct scc_verb_statement_st
 {
 	int new;		//In fact it's bool
@@ -212,5 +223,19 @@ struct scc_actor_statement_st
 	scc_statement_t *turn, *face;	//In degrees
 	scc_statement_t *volume, *frequency, *pan;
 };
+
+struct scc_print_statement_st
+{
+	scc_statement_t *string;
+	scc_statement_t* posxy;
+	scc_statement_t* clipped;
+	scc_statement_t *color;
+	scc_statement_t *actor;
+	int left;
+	int center;
+	int overhead;
+	int mumble;
+};
+
 
 #endif /* SCC_PARSE_H */

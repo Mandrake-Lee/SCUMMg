@@ -40,10 +40,11 @@ static scc_keyword_t scc_keywords[] = {
 	{ "byte",       	TYPE,      SCC_VAR_BYTE },
 //	{ "case",       CASE,      -1 },
 	{ "case",       	SWITCH,		-1 },	
-	{ "center",     	CENTER,		-1 },
+	{ "center",			CENTER,		-1 },					//SCUMM
 	{ "char",       	TYPE,      SCC_VAR_CHAR },
 	{ "chset",      	RESTYPE,   SCC_RES_CHSET },
 	{ "class",      	CLASS,     -1 },
+	{ "clipped",		CLIPPED,	-1 },					//SCUMM
 	{ "color",      	COLOR,		-1 },					//SCUMM	
 	{ "continue",   	BRANCH,    SCC_BRANCH_CONTINUE },
 	{ "cost",       	RESTYPE,   SCC_RES_COST },
@@ -77,7 +78,9 @@ static scc_keyword_t scc_keywords[] = {
 	{ "is",         	IS,        -1 },
 	{ "jump",		   	JUMP,		-1 },					//SCUMM
 	{ "key",        	KEY,        -1 },
+	{ "left",			LEFT,		-1},					//SCUMM	
 	{ "local",      	LOCAL,		-1},					//SCUMM
+	{ "mumble",			MUMBLE,		-1 },					//SCUMM	
 	{ "name",			NAME,		-1 },					//SCUMM
 	{ "new",			NEW,		-1 },					//SCUMM
 	{ "nibble",     	TYPE,      SCC_VAR_NIBBLE },
@@ -86,11 +89,17 @@ static scc_keyword_t scc_keywords[] = {
 	{ "of",				CASE,		-1},					//SCUMM
 	{ "off",			OFF,		-1},					//SCUMM
 	{ "on",				ON,			-1},					//SCUMM
+	{ "overhead",		OVERHEAD,	-1 },					//SCUMM
 	{ "override",   	OVERRIDE,  -1 },
 	{ "pan",			PAN,				-1},			//SCUMM
-	{ "put-actor",		PUT_ACTOR,	-1},					//SCUMM		
+	{ "print-cursor",	PRINT_CURSOR,	-1},				//SCUMM	
+	{ "print-debug",	PRINT_DEBUG,	-1},				//SCUMM		
+	{ "print-line",		PRINT_LINE,		-1},				//SCUMM
+	{ "print-system",	PRINT_SYSTEM,	-1},				//SCUMM
+	{ "put-actor",		PUT_ACTOR,	-1},					//SCUMM	
 	{ "return",    		RETURN,    SCC_BRANCH_RETURN },
 	{ "room",       	ROOM,      -1 },
+	{ "say-line",		SAY_LINE,		-1},				//SCUMM		
 	{ "scale",			SCALE,		-1 },					//SCUMM	
 	{ "script",     	SCRIPT,    -1 },
 	{ "set-screen",    	SET_SCREEN,		-1 },				//SCUMM

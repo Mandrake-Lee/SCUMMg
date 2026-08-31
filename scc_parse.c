@@ -517,6 +517,116 @@ scc_instruct_t* scc_statement_build_actor(scc_parser_t* sccp, scc_symbol_t* asym
 	return actorcode;
 }
 
+scc_instruct_t* scc_statement_build_print(scc_parser_t* sccp, int printtype, scc_print_statement_t* pst)
+{
+	scc_statement_t  *stmnt, *a;
+	scc_instruct_t *printcode=NULL, *last=NULL, *inst;
+	char base[20], function[41];
+	
+	if (!pst)
+		return NULL;
+
+	switch (printtype)
+	{
+		case OP_PRINT_LINE:		strncpy(base, "_print", 20);
+								break;
+		case OP_PRINT_TEXT:		strncpy(base, "_cursorPrint", 20);
+								break;
+		case OP_PRINT_DEBUG:	strncpy(base, "_dbgPrint", 20);
+								break;
+		case OP_PRINT_SYSTEM:	strncpy(base, "_sysPrint", 20);
+								break;
+		case OP_SAY_LINE:		if (pst->actor)
+									strncpy(base, "_actorPrint", 20);
+								else
+									strncpy(base, "_egoPrint", 20);
+								break;
+		default:
+	};
+	
+
+	//Always load previous print format
+	strncpy(function, base, 20);
+	strncat(function, "Begin", 40);
+	if (printtype != OP_SAY_LINE)
+	{		
+		inst = scc_instruction_call(sccp, function, NULL);
+	}
+	else
+		inst = scc_instruction_call(sccp, function, pst->actor);
+	
+	SCC_LIST_ADD( printcode, last, inst);
+	
+	if (pst->posxy)
+	{
+		strncpy(function, base, 20);
+		strncat(function, "At", 40);
+		inst = scc_instruction_call(sccp, function, pst->posxy);
+		SCC_LIST_ADD( printcode, last, inst);
+	}
+	if (pst->color)
+	{
+		strncpy(function, base, 20);
+		strncat(function, "Color", 40);
+		inst = scc_instruction_call(sccp, function, pst->color);
+		SCC_LIST_ADD( printcode, last, inst);
+	}
+	if (pst->clipped)
+	{
+		strncpy(function, base, 20);
+		strncat(function, "Clipped", 40);
+		inst = scc_instruction_call(sccp, function, pst->clipped);
+		SCC_LIST_ADD( printcode, last, inst);
+	}
+	if (pst->center)
+	{
+		strncpy(function, base, 20);
+		strncat(function, "Center", 40);
+		inst = scc_instruction_call(sccp, function, NULL);
+		SCC_LIST_ADD( printcode, last, inst);
+	}
+	if (pst->left)
+	{
+		strncpy(function, base, 20);
+		strncat(function, "Left", 40);
+		inst = scc_instruction_call(sccp, function, NULL);
+		SCC_LIST_ADD( printcode, last, inst);
+	}
+	if (pst->overhead)
+	{
+		strncpy(function, base, 20);
+		strncat(function, "Overhead", 40);
+		inst = scc_instruction_call(sccp, function, NULL);
+		SCC_LIST_ADD( printcode, last, inst);
+	}
+	if (pst->mumble)
+	{
+		strncpy(function, base, 20);
+		strncat(function, "Mumble", 40);
+		inst = scc_instruction_call(sccp, function, NULL);
+		SCC_LIST_ADD( printcode, last, inst);
+	}
+
+	if (!pst->string)
+	{
+		//Assume that if no string is attached, paremeters are to be saved in
+		//the default print style		
+		strncpy(function, base, 20);
+		strncat(function, "End", 40);
+		inst = scc_instruction_call(sccp, function, NULL);
+		SCC_LIST_ADD( printcode, last, inst);		
+	}
+	else
+	{
+		strncpy(function, base, 20);
+		inst = scc_instruction_call(sccp, function, pst->string);
+		SCC_LIST_ADD( printcode, last, inst);
+	}
+	
+	return printcode;
+}
+
+
 int scc_fetch_sym(scc_parser_t* sccp, char* sym, int type, scc_symbol_t** s, char** error)
 {
 	char* symtarget;

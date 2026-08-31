@@ -683,15 +683,15 @@ const scc_func_t scc_func_v6_v7[] = {
     {}
   },
   
-  PRINT("print",B4),
-  PRINT("cursorPrint",B5),
-  PRINT("dbgPrint",B6),
-  PRINT("sysPrint",B7),
-  PRINT2("actorPrint",B8),
-  PRINT3("egoPrint",B8),
+  PRINT("_print",B4),
+  PRINT("_cursorPrint",B5),
+  PRINT("_dbgPrint",B6),
+  PRINT("_sysPrint",B7),
+  PRINT2("_actorPrint",B8),
+  PRINT3("_egoPrint",B8),
   
   {
-    "egoPrintBegin" , 0xB9FE, 0, 0, 0,
+    "_egoPrintBegin" , 0xB9FE, 0, 0, 0,
     {}
   },{
     "actorSay", 0xBA, 0, 2, 0,
